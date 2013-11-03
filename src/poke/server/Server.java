@@ -69,6 +69,15 @@ public class Server {
     protected ChannelFactory cf, mgmtCF;
     protected static ServerConf conf;
     protected HeartbeatManager hbMgr;
+    protected static Channel clientChannel = null;
+
+    public static Channel getClientChannel() {
+	return clientChannel;
+    }
+
+    public static void setClientChannel(Channel channel) {
+	clientChannel = channel;
+    }
 
     /**
      * static because we need to get a handle to the factory from the shutdown

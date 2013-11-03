@@ -277,6 +277,7 @@ public class PerChannelQueue implements ChannelQueue {
 			Response res = (Response) msg;
 
 			String targetNode = res.getHeader().getToNode();
+			System.out.println("PerChannelQ: response target node:" + targetNode);
 			String currentNode = Server.getConf().getServer().getProperty("node.id");
 			if (!targetNode.equalsIgnoreCase(currentNode)) {
 			    System.out.println("PerChannel Q:Current Node" + currentNode);
@@ -296,9 +297,15 @@ public class PerChannelQueue implements ChannelQueue {
 				ForwardedMessage fm = new ForwardedMessage(dest, res);
 				ForwardQ.enqueueResponse(fm);
 			    } else {
+
 				System.out.println("No node to forward to");
 			    }
 			} else {
+			    Channel clientCh = Server.getClientChannel();
+			    if (clientCh.isWritable()) {
+				System.out.println("Client channel is writable");
+				clientCh.write(res);
+			    }
 			    System.out.println("......");
 			    System.out
 				    .println("Send this message to client for this server");

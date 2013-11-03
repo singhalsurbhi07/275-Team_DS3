@@ -25,6 +25,7 @@ import org.jboss.netty.channel.SimpleChannelHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import poke.server.Server;
 import poke.server.queue.ChannelQueue;
 import poke.server.queue.QueueFactory;
 
@@ -69,8 +70,13 @@ public class ServerHandler extends SimpleChannelHandler {
 	    logger.error("ERROR: Unexpected content - null");
 	    return;
 	}
-	if (req instanceof Request)
+	if (req instanceof Request) {
 	    System.out.println("msg is request");
+	    if (((Request) req).getHeader().getOriginator()
+		    .equalsIgnoreCase(Server.getConf().getServer().getProperty("node.id"))) {
+		Server.setClientChannel(channel);
+	    }
+	}
 
 	// processing is deferred to the worker threads
 	queueInstance(channel).enqueueRequest(req);

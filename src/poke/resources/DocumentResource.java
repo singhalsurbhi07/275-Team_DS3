@@ -25,7 +25,6 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import poke.server.Server;
 import poke.server.resources.Resource;
 import poke.server.storage.ServerManagementUtil;
 import eye.Comm.Header;
@@ -52,8 +51,8 @@ public class DocumentResource implements Resource {
 		.setReplyMsg(
 			"File Uploaded")
 		.setOriginator(request.getHeader().getToNode())
-		.setOriginator(
-			Server.getConf().getServer().getProperty("node.id"))
+		.setToNode(
+			request.getHeader().getOriginator())
 		.build();
 
 	PayloadReply pb = PayloadReply.newBuilder()
