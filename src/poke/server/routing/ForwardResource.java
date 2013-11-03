@@ -15,6 +15,7 @@
  */
 package poke.server.routing;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -143,10 +144,12 @@ public class ForwardResource implements Resource {
     private String determineForwardNode(Request request) {
 	System.out.println("IN determineForwardNode start");
 	List<RoutingPath> paths = request.getHeader().getPathList();
-	List<NodeDesc> neighboursList = (List<NodeDesc>) cfg.getNearest().getNearestNodes()
+	Collection<NodeDesc> neighboursList = cfg.getNearest().getNearestNodes()
 		.values();
-	if (neighboursList.contains(request.getHeader().getToNode())) {
-	    return request.getHeader().getToNode();
+	for (NodeDesc eachNode : neighboursList) {
+	    if (eachNode.getNodeId().equalsIgnoreCase(request.getHeader().getToNode())) {
+		return request.getHeader().getToNode();
+	    }
 	}
 	System.out.println("IN determineForwardNode1");
 	if (paths == null || paths.size() == 0) {
