@@ -143,6 +143,11 @@ public class ForwardResource implements Resource {
     private String determineForwardNode(Request request) {
 	System.out.println("IN determineForwardNode start");
 	List<RoutingPath> paths = request.getHeader().getPathList();
+	List<NodeDesc> neighboursList = (List<NodeDesc>) cfg.getNearest().getNearestNodes()
+		.values();
+	if (neighboursList.contains(request.getHeader().getToNode())) {
+	    return request.getHeader().getToNode();
+	}
 	System.out.println("IN determineForwardNode1");
 	if (paths == null || paths.size() == 0) {
 	    System.out.println("pahs==null");
@@ -161,7 +166,7 @@ public class ForwardResource implements Resource {
 	    System.out.println("FowardResource: if path!=null");
 	    // if this server has already seen this message return null
 	    for (RoutingPath rp : paths) {
-		for (NodeDesc nd : cfg.getNearest().getNearestNodes().values()) {
+		for (NodeDesc nd : neighboursList) {
 		    System.out.println("FowardResource: if path!=null"
 			    + nd.getNodeId());
 		    if (!nd.getNodeId().equalsIgnoreCase(rp.getNode()))
