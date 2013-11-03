@@ -111,7 +111,8 @@ public class ClientConnection {
     h.setOriginator(originator);
     h.setTag("test finger");
     h.setTime(System.currentTimeMillis());
-    h.setRoutingId(eye.Comm.Header.Routing.DOCADD);
+    //h.setRoutingId(eye.Comm.Header.Routing.DOCADD);
+    h.setRoutingId(eye.Comm.Header.Routing.STATS);
     h.setRemainingHopCount(4);
     if (dest != null) {
       h.setToNode(dest);
