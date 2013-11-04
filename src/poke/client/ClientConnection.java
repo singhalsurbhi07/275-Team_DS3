@@ -164,6 +164,43 @@ public class ClientConnection {
 	      logger.warn("Unable to deliver message, queuing");
 	  }
   }
+  
+public void removeFile(String fileName){
+	  
+	  System.out.println("$$$$$$$$$$$$$$$$ INSIDE REMOVE FILE METHOD IN CC $$$$$$$$$$$$$$$$$$");
+	  
+	  Document.Builder docBuilder = Document.newBuilder();
+	  docBuilder.setDocName(fileName);
+	  
+	  eye.Comm.Payload.Builder payloadBuilder = Payload.newBuilder();
+	  payloadBuilder.setDoc(docBuilder.build());
+
+	  Request.Builder requestBuilder = Request.newBuilder();
+	  requestBuilder.setBody(payloadBuilder.build());
+	  //System.out.println("RETRIEVERETRIEVERETRIEVERETRIEVERETRIEVERETRIEVE<<<<<<<<<<<<<<<<<<<<<"+retrievePayload.setDoc(retrieveDoc)+"<<<<<<<<<<<<<<<<<<<<<");
+	   
+	  eye.Comm.Header.Builder requestHeader = Header.newBuilder();  
+	  //requestHeader.setOriginator(host + ":" +  port);
+	  requestHeader.setOriginator("zero");
+	  requestHeader.setTime(System.currentTimeMillis());
+	  requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCREMOVE);
+	  requestBuilder.setHeader(requestHeader.build());
+	  
+/*	  Request retrieveRequest = Request.newBuilder().setHeader(retrieveHeader.build()).
+			  setBody(retrievePayload.build()).build();
+*/	  
+	  //logger.info(">>>>>>>>>>>>>>>>>>>>>>>The retrieved Request is >>>>>>>>>>>>>>>>>>" + retrieveRequest);
+	  
+	  eye.Comm.Request fileRequest = requestBuilder.build();
+	  try {
+	      // enqueue message
+	      outbound.put(fileRequest);
+	    } catch (InterruptedException e) {
+	      logger.warn("Unable to deliver message, queuing");
+	  }
+  }
+
+
 //***************inserted till above line on nov 2********************************
   public void poke(String tag, int num) throws IOException {
     // data to send

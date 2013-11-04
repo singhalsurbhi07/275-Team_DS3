@@ -84,7 +84,14 @@ public class Route {
 			   System.out.println("READ       THE            FILE        NAME");
 			   cc.retrieveFile(fileName);
 			   break;
-		case 3:System.out.println("Exit");
+		case 3:System.out.print("Enter the file name to delete --> ");
+		   String fileNameDel = bufferRead.readLine();
+		   System.out.println("Default Download Dir = " + DOWNLOAD_DIR);
+		   System.out.println("READ       THE            FILE        NAME");
+		   cc.removeFile(fileNameDel);
+		   break;
+		case 4:System.out.println("Exit");
+		
 		}
 	}
 
@@ -111,7 +118,8 @@ public class Route {
 			System.out.println("Menu");
 			System.out.println("1. Upload File");
 			System.out.println("2. Retrieve File");
-			System.out.println("3. Exit");
+			System.out.println("3. Remove File");
+			System.out.println("4. Exit");
 			System.out.println("Enter Choice");
 			try{
 			    BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));

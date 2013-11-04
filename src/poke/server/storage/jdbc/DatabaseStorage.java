@@ -318,6 +318,54 @@ public class DatabaseStorage implements Storage {
 		// TODO Auto-generated method stub
 		return null;
 	}
+	@Override
+	public String removeDocument(Request request, String fileName) {
+		Connection conn = null;
+		String fileLocation = null;
+		//FileInfo fileInfo = null;
+		
+			System.out.println("Inside remove doc in Database Storage" + fileName);
+			try {
+				conn = cpool.getConnection();
+			
+			String findFileQuery = "select file_path from file_info where file_name = ?";
+			PreparedStatement fileStmt;
+			
+				fileStmt = conn.prepareStatement(findFileQuery);
+			
+			
+				fileStmt.setString(1,fileName);
+			
+			ResultSet filers;
+
+				filers = fileStmt.executeQuery();
+			
+			
+			System.out.println("Result set = " + filers);
+			if(filers.next()){
+				//fileInfo = new FileInfo();
+				System.out.println("Inside findrs.next()");
+				fileLocation = filers.getString(1);
+				System.out.println("FILE LOCATION===================>" + fileLocation);
+				
+				/*fileInfo.setServerPort(findrs.getString("server_port"));
+				fileInfo.setServerIp(findrs.getString("server_ip"));
+				fileInfo.setFileName(findrs.getString("file_name"));*/
+				if(fileLocation != null){
+					System.out.println("INSIDE DELETE PROCESS");
+					String deleteQuery = "delete from file_info where file_name = ?";
+					PreparedStatement deleteStmt = conn.prepareStatement(deleteQuery);
+					deleteStmt.setString(1,fileName);
+					deleteStmt.execute();
+				}
+			}
+			
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return fileLocation;
+	}
+
 	//******************************inserted on nov 2 *******************************
 	public FileInfo findDocument(Request request, String fileName){
 		Connection conn = null;
