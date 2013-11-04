@@ -25,14 +25,12 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import poke.server.Server;
 import poke.server.resources.Resource;
-import poke.server.resources.ResourceUtil;
 import poke.server.storage.ServerManagementUtil;
-import poke.server.storage.Storage;
-import poke.server.storage.jdbc.DatabaseStorage;
-import eye.Comm.Document;
 import eye.Comm.Header;
 import eye.Comm.Header.ReplyStatus;
+import eye.Comm.Header.Routing;
 import eye.Comm.PayloadReply;
 import eye.Comm.Request;
 import eye.Comm.Response;
@@ -56,7 +54,8 @@ public class DocumentResource implements Resource {
 			"File Uploaded")
 		.setOriginator(request.getHeader().getToNode())
 		.setToNode(
-			request.getHeader().getOriginator()).setRoutingId(request.getHeader().getRoutingId())
+			request.getHeader().getOriginator())
+		.setRoutingId(request.getHeader().getRoutingId())
 		.build();
 
 	PayloadReply pb = PayloadReply.newBuilder()
@@ -73,8 +72,9 @@ public class DocumentResource implements Resource {
 
 	System.out.println("User directory--->>" + userDir);
 	String origID = request.getHeader().getOriginator();
+	String currentID = Server.getConf().getServer().getProperty("node.id");
 
-	String serverDir = userDir + "/server" + origID;
+	String serverDir = userDir + "/server" + origID + "-" + currentID;
 	File serverFolder = new File(serverDir);
 	if (!serverFolder.exists()) {
 	    if (serverFolder.mkdir()) {
@@ -145,6 +145,10 @@ public class DocumentResource implements Resource {
 	logger.info("document ********************* : "
 		+ request.getBody().getDoc().getId());
 
-	return createResponse(request);
+	if (request.getHeader().getRoutingId().equals(Routing.STATS)) {
+	    return createResponse(request);
+	}
+
+	return null;
     }
 }

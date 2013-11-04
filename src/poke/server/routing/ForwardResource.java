@@ -17,6 +17,8 @@ package poke.server.routing;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Random;
+import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,7 +111,6 @@ public class ForwardResource implements Resource {
 		.build();
 	return Response.newBuilder().setBody(pb).setHeader(fb).build();
     }
-  
 
     @Override
     public Response process(Request request) {
@@ -151,8 +152,12 @@ public class ForwardResource implements Resource {
     private String determineForwardNode(Request request) {
 	System.out.println("IN determineForwardNode start");
 	List<RoutingPath> paths = request.getHeader().getPathList();
+
+	TreeMap<String, NodeDesc> neighboursList1 = (TreeMap<String, NodeDesc>) cfg.getNearest()
+		.getNearestNodes();
 	Collection<NodeDesc> neighboursList = cfg.getNearest().getNearestNodes()
 		.values();
+
 	for (NodeDesc eachNode : neighboursList) {
 	    if (eachNode.getNodeId().equalsIgnoreCase(request.getHeader().getToNode())) {
 		return request.getHeader().getToNode();
@@ -161,17 +166,48 @@ public class ForwardResource implements Resource {
 	System.out.println("IN determineForwardNode1");
 	if (paths == null || paths.size() == 0) {
 	    System.out.println("pahs==null");
-	    System.out.println("NearestNode:"
-		    + cfg.getNearest().getNearestNodes().values());
-	    // pick first nearest
-	    NodeDesc nd = cfg.getNearest().getNearestNodes().values()
-		    .iterator().next();
-	    if (nd == null)
+
+	    int neighboursCount = neighboursList.size();
+	    System.out.println("ForwardResource neighbours c ount:" + neighboursCount);
+	    Random randomno = new Random();
+	    int randomNeighbour = randomno.nextInt(neighboursCount);
+	    // Set<String,NodeDesc> nn = neighboursList1.entrySet();
+
+	    System.out.println("ForwardResource random no" + randomNeighbour);
+	    NodeDesc nn = null;
+	    if (randomNeighbour == 0) {
+		nn = cfg.getNearest().getNearestNodes().values()
+			.iterator().next();
+	    } else {
+		// pick first nearest
+		// NodeDesc nn = cfg.getNearest().getNearestNodes().values()
+		// .iterator().next();
+
+		// NodeDesc nd = neighboursList.get(randomNeighbour);
+		// System.out.println("treemap" + nd.getNodeId());
+		// NodeDesc it = neighboursList.iterator().next();
+		int i = 0;
+
+		for (NodeDesc nd : neighboursList) {
+		    if (i != 0) {
+			nn = nd;
+			break;
+		    } else {
+			i++;
+			System.out.println("i=" + i);
+		    }
+		}
+	    }
+
+	    if (nn == null) {
+		nn = cfg.getNearest().getNearestNodes().values()
+			.iterator().next();
 		System.out.println("nodedesc is null");
+	    }
 
 	    System.out
-		    .println("FowardResource: if path==null" + nd.getNodeId());
-	    return nd.getNodeId();
+		    .println("FowardResource: if path==null" + nn.getNodeId());
+	    return nn.getNodeId();
 	} else {
 	    System.out.println("FowardResource: if path!=null");
 	    // if this server has already seen this message return null

@@ -265,7 +265,7 @@ public class PerChannelQueue implements ChannelQueue {
 			} else {
 			    reply = rsc.process(req);
 			    if (reply == null) {
-				System.out.println("request forwarded");
+				System.out.println("Perchannel Q:request forwarded");
 			    } else {
 				sq.enqueueResponse(reply);
 			    }
@@ -334,8 +334,8 @@ public class PerChannelQueue implements ChannelQueue {
 
 	@Override
 	public void operationComplete(ChannelFuture future) throws Exception {
-	    //sq.shutdown(true);
-		sq.shutdown(false);
+	    // sq.shutdown(true);
+	    sq.shutdown(false);
 	}
     }
 }

@@ -58,21 +58,21 @@ public class Route {
 	// cc.poke(tag, count);
 	// }
 	String filePath;
-	String destNode;
+	String dest;
 	String fileName;
 	BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
 	switch (choice) {
 	case 1:
 	    System.out.println("Enter the complete path of the file you need to upload \n");
 	    filePath = bufferRead.readLine();
-	    System.out.println("Enter the node in words, where the file has to be uploaded");
-	    destNode = bufferRead.readLine();
+	    System.out.println("Enter the ip of the node, where the file has to be uploaded");
+	    dest = bufferRead.readLine();
 	    System.out.println("Filepath-->>" + filePath);
 	    if (!new File(filePath).exists())
 	    {
 		throw new FileNotFoundException("Yikes!");
 	    } else {
-		cc.uploadFile(filePath, destNode);
+		cc.uploadFile(filePath, dest);
 	    }
 	    break;
 
