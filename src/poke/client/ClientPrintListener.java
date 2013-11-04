@@ -1,9 +1,16 @@
 package poke.client;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import poke.client.util.ClientUtil;
+import poke.demo.Route;
 import eye.Comm.Header;
 
 /**
@@ -13,32 +20,74 @@ import eye.Comm.Header;
  * 
  */
 public class ClientPrintListener implements ClientListener {
-  protected static Logger logger = LoggerFactory.getLogger("client");
+	protected static Logger logger = LoggerFactory.getLogger("client");
 
-  private String id;
+	private String id;
 
-  public ClientPrintListener(String id) {
-    this.id = id;
-  }
+	public ClientPrintListener(String id) {
+		this.id = id;
+	}
 
-  @Override
-  public String getListenerID() {
-    return id;
-  }
+	@Override
+	public String getListenerID() {
+		return id;
+	}
 
-  @Override
-  public void onMessage(eye.Comm.Response msg) {
-    System.out.println("In clientPrintListener");
-    if (logger.isDebugEnabled())
-      ClientUtil.printHeader(msg.getHeader());
+	@Override
+	public void onMessage(eye.Comm.Response msg) {
+		System.out.println("In clientPrintListener");
+		if (logger.isDebugEnabled()){
+			ClientUtil.printHeader(msg.getHeader());
+			System.out.println("INSIDE IS DEBUG ENABLED");
+		}
 
-    if (msg.getHeader().getRoutingId() == Header.Routing.FINGER)
-      ClientUtil.printFinger(msg.getBody().getFinger());
+		if (msg.getHeader().getRoutingId() == Header.Routing.FINGER){
+			ClientUtil.printFinger(msg.getBody().getFinger());
+			System.out.println("INSIDE FINGER");
+		}
 
-    else {
-      System.out.println(msg.getBody().getStats().getDocName() + " uploaded");
-      // for (int i = 0, I = msg.getBody().getDocsCount(); i < I; i++)
-      // ClientUtil.printDocument(msg.getBody().getDocs(i));
-    }
-  }
+		else {
+			if (msg.getHeader().getRoutingId() == eye.Comm.Header.Routing.DOCFIND) {
+				
+				System.out.println("<<<<<<<<<<<<<<inside DOC find to write into client file system>>>>>>>>>>>>>>>>>>>>>>>");
+				
+				String fileName = msg.getBody().getStats()
+						.getDocName();
+				System.out.println("1 in client printlistender");
+				String fileContent = msg.getBody().getStats()
+						.getChunkContent().toStringUtf8();
+				System.out.println("2 in client printlistender");
+				
+				File f = new File(Route.DOWNLOAD_DIR + File.separator
+						+ fileName);
+				try {
+					/*FileOutputStream fo = new FileOutputStream(f);
+					byte[] b = msg.getBody().getStats()
+							.getChunkContent().toByteArray();
+					
+					fo.write(b);
+					fo.close();*/
+					PrintWriter writer;
+					writer = new PrintWriter(f, "UTF-8");
+					writer.println(fileContent);
+					writer.close();
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
+				System.out
+						.println("The file content is ------------------------->"
+								+ fileContent);
+			} else if (msg.getHeader().getRoutingId() == eye.Comm.Header.Routing.STATS) {
+				System.out.println(msg.getBody().getStats().getDocName()
+						+ " uploaded");
+			}
+			// for (int i = 0, I = msg.getBody().getDocsCount(); i < I; i++)
+			// ClientUtil.printDocument(msg.getBody().getDocs(i));
+		}
+	}
 }

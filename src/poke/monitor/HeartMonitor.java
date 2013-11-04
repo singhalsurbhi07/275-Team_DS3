@@ -41,94 +41,95 @@ import eye.Comm.Network.Action;
 public class HeartMonitor {
   protected static Logger logger = LoggerFactory.getLogger("monitor");
 
-  protected ChannelFuture channel; // do not use directly call connect()!
-  protected ClientBootstrap bootstrap;
+	protected ChannelFuture channel; // do not use directly call connect()!
+	protected ClientBootstrap bootstrap;
 
-  // either host/port or handler, not both
-  private String host;
-  private int port;
-  private MonitorHandler handler;
+	// either host/port or handler, not both
+	private String host;
+	private int port;
+	private MonitorHandler handler;
 
-  // protected ChannelFactory cf;
+	// protected ChannelFactory cf;
 
-  /**
-   * most applications will supply a handler to process messages. This is the
-   * prefered constructor.
-   * 
-   * @param handler
-   * @param host
-   *          the hostname
-   * @param port
-   *          This is the management port
-   */
-  public HeartMonitor(String host, int port, MonitorHandler handler) {
-    this.handler = handler;
-    this.host = host;
-    this.port = port;
+	/**
+	 * most applications will supply a handler to process messages. This is the
+	 * prefered constructor.
+	 * 
+	 * @param handler
+	 * @param host
+	 *            the hostname
+	 * @param port
+	 *            This is the management port
+	 */
+	public HeartMonitor(String host, int port, MonitorHandler handler) {
+		this.handler = handler;
+		this.host = host;
+		this.port = port;
 
-    initTCP();
-  }
+		initTCP();
+	}
 
-  /**
-   * this is used for demonstrations as it creates a handler to print hbMgr
-   * messages.
-   * 
-   * @param host
-   *          the hostname
-   * @param port
-   *          This is the management port
-   */
-  protected HeartMonitor(String host, int port) {
-    this.host = host;
-    this.port = port;
+	/**
+	 * this is used for demonstrations as it creates a handler to print hbMgr
+	 * messages.
+	 * 
+	 * @param host
+	 *            the hostname
+	 * @param port
+	 *            This is the management port
+	 */
+	protected HeartMonitor(String host, int port) {
+		this.host = host;
+		this.port = port;
 
-    initTCP();
-  }
+		initTCP();
+	}
 
-  public MonitorHandler getHandler() {
-    return handler;
-  }
+	public MonitorHandler getHandler() {
+		return handler;
+	}
 
-  public void release() {
-    // TODO implement behavior to drop listeners and connection
+	public void release() {
+		// TODO implement behavior to drop listeners and connection
 
-    // if (cf != null)
-    // cf.releaseExternalResources();
-  }
+		// if (cf != null)
+		// cf.releaseExternalResources();
+	}
 
-  protected void initUDP() {
-    NioDatagramChannelFactory cf = new NioDatagramChannelFactory(
-        Executors.newCachedThreadPool());
-    ConnectionlessBootstrap bootstrap = new ConnectionlessBootstrap(cf);
+	protected void initUDP() {
+		NioDatagramChannelFactory cf = new NioDatagramChannelFactory(Executors.newCachedThreadPool());
+		ConnectionlessBootstrap bootstrap = new ConnectionlessBootstrap(cf);
 
-    bootstrap.setOption("connectTimeoutMillis", 10000);
-    bootstrap.setOption("keepAlive", true);
+		bootstrap.setOption("connectTimeoutMillis", 10000);
+		bootstrap.setOption("keepAlive", true);
 
-    // Set up the pipeline factory.
-    if (handler != null) {
-      HeartPrintListener print = new HeartPrintListener(host + ":" + port);
-      handler = new MonitorHandler();
-      handler.addListener(print);
-    }
-    bootstrap.setPipelineFactory(new MonitorPipeline(handler));
-  }
+		// Set up the pipeline factory.
+		if (handler != null) {
+			HeartPrintListener print = new HeartPrintListener(host + ":" + port);
+			handler = new MonitorHandler();
+			handler.addListener(print);
+		}
+		bootstrap.setPipelineFactory(new MonitorPipeline(handler));
+	}
 
-  protected void initTCP() {
-    bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(
-        Executors.newCachedThreadPool(), Executors.newFixedThreadPool(2)));
+	protected void initTCP() {
+		bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(Executors.newCachedThreadPool(),
+				Executors.newFixedThreadPool(2)));
 
-    bootstrap.setOption("connectTimeoutMillis", 10000);
-    bootstrap.setOption("tcpNoDelay", true);
-    bootstrap.setOption("keepAlive", true);
+		bootstrap.setOption("connectTimeoutMillis", 10000);
+		bootstrap.setOption("tcpNoDelay", true);
+		bootstrap.setOption("keepAlive", true);
+		
+		// case of a demo code
+		if (handler == null) {
+			HeartPrintListener print = new HeartPrintListener(host + ":" + port);
+			handler = new MonitorHandler();
+			handler.addListener(print);
+		}
+		bootstrap.setPipelineFactory(new MonitorPipeline(handler));
+	}
 
-    // case of a demo code
-    if (handler == null) {
-      HeartPrintListener print = new HeartPrintListener(host + ":" + port);
-      handler = new MonitorHandler();
-      handler.addListener(print);
-    }
-    bootstrap.setPipelineFactory(new MonitorPipeline(handler));
-  }
+   
 
   /**
    * create connection to remote server

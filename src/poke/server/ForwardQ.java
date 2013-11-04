@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ForwardQ {
+
   protected static Logger logger = LoggerFactory.getLogger("ForwardingQ");
 
   // protected static LinkedBlockingDeque<ManagementQueueEntry> inbound = new

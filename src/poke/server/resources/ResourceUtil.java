@@ -27,17 +27,17 @@ import eye.Comm.RoutingPath;
 
 public class ResourceUtil {
 
-    /**
-     * Build a forwarding request message. Note this will return null if the
-     * server has already seen the request.
-     * 
-     * @param req
-     *            The request to forward
-     * @param cfg
-     *            The server's configuration
-     * @return The request with this server added to the routing path or null
-     */
-    public static Request buildForwardMessage(Request req, ServerConf cfg) {
+	/**
+	 * Build a forwarding request message. Note this will return null if the
+	 * server has already seen the request.
+	 * 
+	 * @param req
+	 *            The request to forward
+	 * @param cfg
+	 *            The server's configuration
+	 * @return The request with this server added to the routing path or null
+	 */
+	public static Request buildForwardMessage(Request req, ServerConf cfg) {
 
 	String iam = cfg.getServer().getProperty("node.id");
 	List<RoutingPath> paths = req.getHeader().getPathList();

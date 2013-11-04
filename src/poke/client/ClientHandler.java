@@ -34,80 +34,73 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.GeneratedMessage;
 
 public class ClientHandler extends SimpleChannelUpstreamHandler {
-  protected static Logger logger = LoggerFactory.getLogger("client");
-  protected ConcurrentMap<String, ClientListener> listeners = new ConcurrentHashMap<String, ClientListener>();
-  private volatile Channel channel;
+	protected static Logger logger = LoggerFactory.getLogger("client");
+	protected ConcurrentMap<String, ClientListener> listeners = new ConcurrentHashMap<String, ClientListener>();
+	private volatile Channel channel;
 
-  public ClientHandler() {
-  }
+	public ClientHandler() {
+	}
 
-  public boolean send(GeneratedMessage msg) {
-    // TODO a queue is needed to prevent overloading of the socket
-    // connection. For the demonstration, we don't need it
+	public boolean send(GeneratedMessage msg) {
+		// TODO a queue is needed to prevent overloading of the socket
+		// connection. For the demonstration, we don't need it
+		
+		//logger.info("The message being written from CLIENT HANDLER CLASS IS ============>" + msg);
+		ChannelFuture cf = channel.write(msg);
+		if (cf.isDone() && !cf.isSuccess()) {
+			logger.error("failed to poke!");
+			return false;
+		}
 
-    // logger.info("The message being written from CLIENT HANDLER CLASS IS ============>"
-    // + msg);
-    ChannelFuture cf = channel.write(msg);
-    if (cf.isDone() && !cf.isSuccess()) {
-      logger.error("failed to poke!");
-      return false;
-    }
+		return true;
+	}
 
-    return true;
-  }
+	public void handleMessage(eye.Comm.Response msg) {
+		for (String id : listeners.keySet()) {
+			ClientListener cl = listeners.get(id);
 
-  public void handleMessage(eye.Comm.Response msg) {
-    for (String id : listeners.keySet()) {
-      ClientListener cl = listeners.get(id);
+			// TODO this may need to be delegated to a thread pool to allow
+			// async processing of replies
+			cl.onMessage(msg);
+		}
+	}
 
-      // TODO this may need to be delegated to a thread pool to allow
-      // async processing of replies
-      cl.onMessage(msg);
-    }
-  }
+	public void addListener(ClientListener listener) {
+		if (listener == null)
+			return;
 
-  public void addListener(ClientListener listener) {
-    if (listener == null)
-      return;
+		listeners.putIfAbsent(listener.getListenerID(), listener);
+	}
 
-    listeners.putIfAbsent(listener.getListenerID(), listener);
-  }
+	@Override
+	public void channelOpen(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		channel = e.getChannel();
+		super.channelOpen(ctx, e);
+	}
 
-  @Override
-  public void channelOpen(ChannelHandlerContext ctx, ChannelStateEvent e)
-      throws Exception {
-    channel = e.getChannel();
-    super.channelOpen(ctx, e);
-  }
+	@Override
+	public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		if (channel.isConnected())
+			channel.write(ChannelBuffers.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+	}
 
-  @Override
-  public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e)
-      throws Exception {
-    if (channel.isConnected())
-      channel.write(ChannelBuffers.EMPTY_BUFFER).addListener(
-          ChannelFutureListener.CLOSE);
-  }
+	@Override
+	public void channelInterestChanged(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		if (e.getState() == ChannelState.INTEREST_OPS && ((Integer) e.getValue() == Channel.OP_WRITE)
+				|| (Integer) e.getValue() == Channel.OP_READ_WRITE)
+			logger.warn("channel is not writable! <--------------------------------------------");
+	}
 
-  @Override
-  public void channelInterestChanged(ChannelHandlerContext ctx,
-      ChannelStateEvent e) throws Exception {
-    if (e.getState() == ChannelState.INTEREST_OPS
-        && ((Integer) e.getValue() == Channel.OP_WRITE)
-        || (Integer) e.getValue() == Channel.OP_READ_WRITE)
-      logger
-          .warn("channel is not writable! <--------------------------------------------");
-  }
+	@Override
+	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
+		handleMessage((eye.Comm.Response) e.getMessage());
+	}
 
-  @Override
-  public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
-    handleMessage((eye.Comm.Response) e.getMessage());
-  }
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
+		logger.error("Handler exception, closing channel", e);
 
-  @Override
-  public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-    logger.error("Handler exception, closing channel", e);
-
-    // TODO do we really want to do this? try to re-connect?
-    e.getChannel().close();
-  }
+		// TODO do we really want to do this? try to re-connect?
+		e.getChannel().close();
+	}
 }
