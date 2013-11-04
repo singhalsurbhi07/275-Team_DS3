@@ -334,7 +334,8 @@ public class PerChannelQueue implements ChannelQueue {
 
 	@Override
 	public void operationComplete(ChannelFuture future) throws Exception {
-	    sq.shutdown(true);
+	    //sq.shutdown(true);
+		sq.shutdown(false);
 	}
     }
 }

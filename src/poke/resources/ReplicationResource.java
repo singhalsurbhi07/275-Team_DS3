@@ -103,7 +103,7 @@ public class ReplicationResource implements Resource {
 			"Not enough hop counts or not able to determine next node")
 		.setOriginator(request.getHeader().getToNode())
 		.setOriginator(
-			Server.getConf().getServer().getProperty("node.id"))
+			Server.getConf().getServer().getProperty("node.id")).setRoutingId(request.getHeader().getRoutingId())
 		.build();
 
 	PayloadReply pb = PayloadReply.newBuilder()
@@ -119,7 +119,7 @@ public class ReplicationResource implements Resource {
 	GeneratedMessage m = null;
 	
 	DocumentResource dr = new DocumentResource();
-	dr.process(request);
+	Response res=dr.process(request);
 	
 	//String nextNode = determineForwardNode(request);
 	ArrayList<NodeDesc> neighboursList = new ArrayList(cfg.getNearest().getNearestNodes()
@@ -140,7 +140,7 @@ public class ReplicationResource implements Resource {
 	ForwardQ.enqueueRequest(fwdMessage);
 	}
 	
-	return null;
+	return res;
     
     
 

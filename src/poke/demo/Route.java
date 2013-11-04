@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Properties;
 import java.util.Scanner;
 
 import poke.client.ClientConnection;
@@ -35,19 +36,16 @@ import poke.client.ClientPrintListener;
 public class Route {
 	private String tag;
 	private int count;
-	public static final String DOWNLOAD_DIR = "/tmp/downloads";
-
+	/*Properties p = System.getProperties();
+	String key = "user.home";
+	String  USER_DIR = (String) p.get(key);
+	public final String DOWNLOAD_DIR = USER_DIR + "/downloads";
+	//public static final String DOWNLOAD_DIR = "/tmp/downloads";
+*/
 	public Route(String tag) {
 		this.tag = tag;
-		
-		File clientFolder = new File(DOWNLOAD_DIR);
-		if (!clientFolder.exists()) {
-			if (clientFolder.mkdir()) {
-				System.out.println("Directory is created!");
-			} else {
-				System.out.println("Directory already exist");
-			}
-		}
+
+	
 		
 	}
 
@@ -82,7 +80,7 @@ public class Route {
 		
 		case 2:System.out.print("Enter the file name to retrieve --> ");
 			   fileName = bufferRead.readLine();
-			   System.out.println("Default Download Dir = " + DOWNLOAD_DIR);
+			   //System.out.println("Default Download Dir = " + DOWNLOAD_DIR);
 			   System.out.println("READ       THE            FILE        NAME");
 			   cc.retrieveFile(fileName);
 			   break;
@@ -108,8 +106,8 @@ public class Route {
 	
 	public static void main(String [] args){
 		int choice = 0;
-		do{
-			
+		
+		do{	
 			System.out.println("Menu");
 			System.out.println("1. Upload File");
 			System.out.println("2. Retrieve File");
@@ -127,7 +125,7 @@ public class Route {
 			{
 				e.printStackTrace();
 			}
-		} while(choice <= 2);
+		} while(choice <=2);
 		
 	}
 }

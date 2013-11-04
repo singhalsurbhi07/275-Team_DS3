@@ -56,7 +56,7 @@ public class DocumentResource implements Resource {
 			"File Uploaded")
 		.setOriginator(request.getHeader().getToNode())
 		.setToNode(
-			request.getHeader().getOriginator())
+			request.getHeader().getOriginator()).setRoutingId(request.getHeader().getRoutingId())
 		.build();
 
 	PayloadReply pb = PayloadReply.newBuilder()
