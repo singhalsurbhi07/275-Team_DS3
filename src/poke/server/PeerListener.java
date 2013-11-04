@@ -1,5 +1,6 @@
 package poke.server;
 
+import org.jboss.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

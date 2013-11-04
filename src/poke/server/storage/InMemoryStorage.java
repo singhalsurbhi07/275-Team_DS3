@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 
+import poke.server.vo.FileInfo;
+
 import eye.Comm.Document;
 import eye.Comm.NameSpace;
 import eye.Comm.Request;
@@ -31,211 +33,216 @@ import eye.Comm.Request;
  * 
  */
 public class InMemoryStorage implements Storage {
-  Request request;
-  private static String sNoName = "";
-  private HashMap<Long, DataNameSpace> data = new HashMap<Long, DataNameSpace>();
+	Request request;
+	private static String sNoName = "";
+	private HashMap<Long, DataNameSpace> data = new HashMap<Long, DataNameSpace>();
 
-  @Override
-  // public boolean addDocument(String namespace, Document doc,String
-  // databaseName) {
-  public boolean addDocument(Request request, String filePath, String serverPort) {
-    Document doc = request.getBody().getDoc();
-    String namespace = null;
-    if (doc == null)
-      return false;
-    DataNameSpace dns = null;
-    if (namespace == null) {
-      namespace = sNoName;
-      NameSpace.Builder bldr = NameSpace.newBuilder();
-      bldr.setId(createKey());
-      bldr.setName(sNoName);
-      bldr.setOwner("none");
-      bldr.setCreated(System.currentTimeMillis());
-      dns = new DataNameSpace(bldr.build());
-      data.put(dns.nsb.getId(), dns);
-    } else
-      dns = lookupByName(namespace);
+	@Override
+	//public boolean addDocument(String namespace, Document doc,String databaseName) {
+	public boolean addDocument(Request request, String filePath, String serverPort){
+		Document doc = request.getBody().getDoc();
+		String namespace = null;
+		if (doc == null)
+			return false;
+		DataNameSpace dns = null;
+		if (namespace == null) {
+			namespace = sNoName;
+			NameSpace.Builder bldr = NameSpace.newBuilder();
+			bldr.setId(createKey());
+			bldr.setName(sNoName);
+			bldr.setOwner("none");
+			bldr.setCreated(System.currentTimeMillis());
+			dns = new DataNameSpace(bldr.build());
+			data.put(dns.nsb.getId(), dns);
+		} else
+			dns = lookupByName(namespace);
 
-    if (dns == null)
-      throw new RuntimeException("Unknown namspace: " + namespace);
+		if (dns == null)
+			throw new RuntimeException("Unknown namspace: " + namespace);
 
-    Long key = null;
-    if (doc.hasId())
-      doc.hasId();
-    else {
-      // note because we store the protobuf instance (read-only)
-      key = createKey();
-      Document.Builder bldr = Document.newBuilder(doc);
-      bldr.setId(key);
-      doc = bldr.build();
-    }
+		Long key = null;
+		if (doc.hasId())
+			doc.hasId();
+		else {
+			// note because we store the protobuf instance (read-only)
+			key = createKey();
+			Document.Builder bldr = Document.newBuilder(doc);
+			bldr.setId(key);
+			doc = bldr.build();
+		}
 
-    return dns.add(key, doc);
-  }
+		return dns.add(key, doc);
+	}
+	
+	@Override
+	public boolean removeDocument(String namespace, long docId) {
+		if (namespace == null)
+			namespace = sNoName;
 
-  @Override
-  public boolean removeDocument(String namespace, long docId) {
-    if (namespace == null)
-      namespace = sNoName;
+		boolean rtn = false;
+		DataNameSpace list = data.get(namespace);
+		if (list != null)
+			rtn = list.remove(docId);
 
-    boolean rtn = false;
-    DataNameSpace list = data.get(namespace);
-    if (list != null)
-      rtn = list.remove(docId);
+		return rtn;
+	}
 
-    return rtn;
-  }
+	@Override
+	public boolean updateDocument(String namespace, Document doc) {
+		return addDocument(request, ""," ");
+	}
+	
+	@Override
+	public boolean updateDocument(Request request, String filePath){
+		return true;
+	}
 
-  @Override
-  public boolean updateDocument(String namespace, Document doc) {
-    return addDocument(request, "", " ");
-  }
+	@Override
+	public List<Document> findDocuments(String namespace, Document criteria) {
+		// TODO locating documents can be have several implementations that
+		// allow for exact matching to not equal to gt to lt
 
-  @Override
-  public boolean updateDocument(Request request, String filePath) {
-    return true;
-  }
+		// return the namespace as queries are not implemented
+		DataNameSpace list = data.get(namespace);
+		if (list == null)
+			return null;
+		else
+			return new ArrayList<Document>(list.data.values());
+	}
 
-  @Override
-  public List<Document> findDocuments(String namespace, Document criteria) {
-    // TODO locating documents can be have several implementations that
-    // allow for exact matching to not equal to gt to lt
+	@Override
+	public eye.Comm.NameSpace getNameSpaceInfo(long spaceId) {
+		DataNameSpace dns = data.get(spaceId);
+		if (dns != null)
+			return dns.getNameSpace();
+		else
+			return null;
+	}
 
-    // return the namespace as queries are not implemented
-    DataNameSpace list = data.get(namespace);
-    if (list == null)
-      return null;
-    else
-      return new ArrayList<Document>(list.data.values());
-  }
+	@Override
+	public List<eye.Comm.NameSpace> findNameSpaces(eye.Comm.NameSpace criteria) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 
-  @Override
-  public eye.Comm.NameSpace getNameSpaceInfo(long spaceId) {
-    DataNameSpace dns = data.get(spaceId);
-    if (dns != null)
-      return dns.getNameSpace();
-    else
-      return null;
-  }
+	@Override
+	public NameSpace createNameSpace(eye.Comm.NameSpace space) {
+		if (space == null)
+			return null;
 
-  @Override
-  public List<eye.Comm.NameSpace> findNameSpaces(eye.Comm.NameSpace criteria) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+		DataNameSpace dns = lookupByName(space.getName());
+		if (dns != null)
+			throw new RuntimeException("Namespace already exists");
 
-  @Override
-  public NameSpace createNameSpace(eye.Comm.NameSpace space) {
-    if (space == null)
-      return null;
+		NameSpace.Builder bldr = NameSpace.newBuilder();
+		if (space.hasId()) {
+			dns = data.get(space.getId());
+			if (dns != null)
+				throw new RuntimeException("Namespace ID already exists");
+			else
+				bldr.setId(space.getId());
+		} else
+			bldr.setId(createKey());
 
-    DataNameSpace dns = lookupByName(space.getName());
-    if (dns != null)
-      throw new RuntimeException("Namespace already exists");
+		bldr.setName(space.getName());
+		bldr.setCreated(System.currentTimeMillis());
+		bldr.setLastModified(bldr.getCreated());
 
-    NameSpace.Builder bldr = NameSpace.newBuilder();
-    if (space.hasId()) {
-      dns = data.get(space.getId());
-      if (dns != null)
-        throw new RuntimeException("Namespace ID already exists");
-      else
-        bldr.setId(space.getId());
-    } else
-      bldr.setId(createKey());
+		if (space.hasOwner())
+			bldr.setOwner(space.getOwner());
 
-    bldr.setName(space.getName());
-    bldr.setCreated(System.currentTimeMillis());
-    bldr.setLastModified(bldr.getCreated());
+		if (space.hasDesc())
+			bldr.setDesc(space.getDesc());
 
-    if (space.hasOwner())
-      bldr.setOwner(space.getOwner());
+		NameSpace ns = bldr.build();
+		dns = new DataNameSpace(ns);
+		data.put(dns.getNameSpace().getId(), dns);
 
-    if (space.hasDesc())
-      bldr.setDesc(space.getDesc());
+		return ns;
+	}
 
-    NameSpace ns = bldr.build();
-    dns = new DataNameSpace(ns);
-    data.put(dns.getNameSpace().getId(), dns);
+	@Override
+	public boolean removeNameSpace(long spaceId) {
+		DataNameSpace dns = data.remove(spaceId);
+		try {
+			return (dns != null);
+		} finally {
+			if (dns != null)
+				dns.release();
+			dns = null;
+		}
+	}
 
-    return ns;
-  }
+	private DataNameSpace lookupByName(String name) {
+		if (name == null)
+			return null;
 
-  @Override
-  public boolean removeNameSpace(long spaceId) {
-    DataNameSpace dns = data.remove(spaceId);
-    try {
-      return (dns != null);
-    } finally {
-      if (dns != null)
-        dns.release();
-      dns = null;
-    }
-  }
+		for (DataNameSpace dns : data.values()) {
+			if (dns.getNameSpace().getName().equals(name))
+				return dns;
+		}
+		return null;
+	}
 
-  private DataNameSpace lookupByName(String name) {
-    if (name == null)
-      return null;
+	private long createKey() {
+		// TODO need key generator
+		return System.nanoTime();
+	}
 
-    for (DataNameSpace dns : data.values()) {
-      if (dns.getNameSpace().getName().equals(name))
-        return dns;
-    }
-    return null;
-  }
+	private static class DataNameSpace {
+		// store the builder to allow continued updates to the metadata
+		eye.Comm.NameSpace.Builder nsb;
+		HashMap<Long, Document> data = new HashMap<Long, Document>();
 
-  private long createKey() {
-    // TODO need key generator
-    return System.nanoTime();
-  }
+		public DataNameSpace(NameSpace ns) {
+			nsb = NameSpace.newBuilder(ns);
+		}
 
-  private static class DataNameSpace {
-    // store the builder to allow continued updates to the metadata
-    eye.Comm.NameSpace.Builder nsb;
-    HashMap<Long, Document> data = new HashMap<Long, Document>();
+		public void release() {
+			if (data != null) {
+				data.clear();
+				data = null;
+			}
 
-    public DataNameSpace(NameSpace ns) {
-      nsb = NameSpace.newBuilder(ns);
-    }
+			nsb = null;
+		}
 
-    public void release() {
-      if (data != null) {
-        data.clear();
-        data = null;
-      }
+		public NameSpace getNameSpace() {
+			return nsb.build();
+		}
 
-      nsb = null;
-    }
+		public boolean add(Long key, Document doc) {
+			data.put(key, doc);
+			nsb.setLastModified(System.currentTimeMillis());
+			return true;
+		}
 
-    public NameSpace getNameSpace() {
-      return nsb.build();
-    }
+		public boolean remove(Long key) {
+			Document doc = data.remove(key);
+			if (doc == null)
+				return false;
+			else {
+				nsb.setLastModified(System.currentTimeMillis());
+				return true;
+			}
+		}
+	}
 
-    public boolean add(Long key, Document doc) {
-      data.put(key, doc);
-      nsb.setLastModified(System.currentTimeMillis());
-      return true;
-    }
+	@Override
+	public void init(Properties cfg) {
+		// TODO Auto-generated method stub
+		
+	}
 
-    public boolean remove(Long key) {
-      Document doc = data.remove(key);
-      if (doc == null)
-        return false;
-      else {
-        nsb.setLastModified(System.currentTimeMillis());
-        return true;
-      }
-    }
-  }
+	@Override
+	public void release() {
+		// TODO Auto-generated method stub
+		
+	}
 
-  @Override
-  public void init(Properties cfg) {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void release() {
-    // TODO Auto-generated method stub
-
-  }
+	@Override
+	public FileInfo findDocument(Request request, String fileName) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
