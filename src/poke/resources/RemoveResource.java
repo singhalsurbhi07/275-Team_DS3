@@ -1,5 +1,5 @@
-
 package poke.resources;
+
 /*
  * copyright 2013, gash
  *t poke. 
@@ -16,8 +16,7 @@ package poke.resources;
  * under the License.
  */
 
-
-import java.io.IOException;
+import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
@@ -32,13 +31,8 @@ import poke.server.conf.NodeDesc;
 import poke.server.conf.ServerConf;
 import poke.server.resources.Resource;
 import poke.server.storage.ServerManagementUtil;
-import poke.server.vo.FileInfo;
-
-import com.google.protobuf.GeneratedMessage;
-
 import eye.Comm.Header;
 import eye.Comm.Header.ReplyStatus;
-import eye.Comm.Document;
 import eye.Comm.PayloadReply;
 import eye.Comm.Request;
 import eye.Comm.Response;
@@ -57,14 +51,14 @@ import eye.Comm.RoutingPath;
 public class RemoveResource implements Resource {
     protected static Logger logger = LoggerFactory.getLogger("server");
 
-   // protected static Logger logger = LoggerFactory.getLogger("server");
-	public static final String sDriver = "jdbc.driver";
-	public static final String sUrl = "jdbc.url";
-	public static final String sUser = "jdbc.user";
-	public static final String sPass = "jdbc.password";
-	//private ServerConf cfg;
-	public String adjacentNode = null;
-	
+    // protected static Logger logger = LoggerFactory.getLogger("server");
+    public static final String sDriver = "jdbc.driver";
+    public static final String sUrl = "jdbc.url";
+    public static final String sUser = "jdbc.user";
+    public static final String sPass = "jdbc.password";
+    // private ServerConf cfg;
+    public String adjacentNode = null;
+
     private ServerConf cfg;
 
     public ServerConf getCfg() {
@@ -107,7 +101,7 @@ public class RemoveResource implements Resource {
     }
 
     Response response;
-    
+
     private Response createResponse(Request request) {
 
 	// fb.setTag(request.getBody().getFinger().getTag());
@@ -115,6 +109,23 @@ public class RemoveResource implements Resource {
 		.newBuilder(request.getHeader())
 		.setReplyCode(ReplyStatus.SUCCESS)
 		.setReplyMsg("File Deleted")
+		.setToNode(request.getHeader().getPath(0).getNode())
+		.setOriginator(
+			Server.getConf().getServer().getProperty("node.id"))
+		.build();
+
+	PayloadReply pb = PayloadReply.newBuilder()
+		.build();
+	return Response.newBuilder().setBody(pb).setHeader(fb).build();
+    }
+
+    private Response createResponseFailure(Request request) {
+
+	// fb.setTag(request.getBody().getFinger().getTag());
+	Header fb = Header
+		.newBuilder(request.getHeader())
+		.setReplyCode(ReplyStatus.SUCCESS)
+		.setReplyMsg("File  Deleted")
 		.setOriginator(request.getHeader().getToNode())
 		.setOriginator(
 			Server.getConf().getServer().getProperty("node.id"))
@@ -124,75 +135,62 @@ public class RemoveResource implements Resource {
 		.build();
 	return Response.newBuilder().setBody(pb).setHeader(fb).build();
     }
-    
-    private Response createResponseFailure(Request request) {
-
-    	// fb.setTag(request.getBody().getFinger().getTag());
-    	Header fb = Header
-    		.newBuilder(request.getHeader())
-    		.setReplyCode(ReplyStatus.SUCCESS)
-    		.setReplyMsg("File  Deleted")
-    		.setOriginator(request.getHeader().getToNode())
-    		.setOriginator(
-    			Server.getConf().getServer().getProperty("node.id"))
-    		.build();
-
-    	PayloadReply pb = PayloadReply.newBuilder()
-    		.build();
-    	return Response.newBuilder().setBody(pb).setHeader(fb).build();
-        }
 
     @Override
     public Response process(Request request) {
-    	
-    	setCfg();
-    	Properties p = System.getProperties();
-		Document retrievedFile = null;
-		String fileToBeRetrieved = request.getBody().getDoc().getDocName();
-		System.out
-				.println("The name of the file to be removed is ==============> "
-						+ fileToBeRetrieved);
 
-		String filePath= ServerManagementUtil.getDatabaseStorage()
-				.removeDocument(request, fileToBeRetrieved);
-		Response response = null;
-		eye.Comm.PayloadReply.Builder retrievePayload = null;
-		if(filePath != null){
-			
-			System.out.println("&&&&&&&&&&&&&& THE FILE PATH IS &&&&&&&&&&&&&77" + filePath);
-			
-				
-				//remove from file path
-				Response res=createResponse(request);
-				
-				//response=res;
-	
-			
-		}
-		
-			String nextNode = determineForwardNode(request);
+	setCfg();
+	Properties p = System.getProperties();
+	// Document retrievedFile = null;
+	String fileToBeRetrieved = request.getBody().getDoc().getDocName();
+	System.out.println("The name of the file to be removed is ==============> "
+		+ fileToBeRetrieved);
 
-			System.out.println("nextNode=" + nextNode);
-			GeneratedMessage msg = null;
+	String filePath = (ServerManagementUtil.getDatabaseStorage())
+		.removeDocumentfromDB(fileToBeRetrieved);
+	// Response response = null;
+	// eye.Comm.PayloadReply.Builder retrievePayload = null;
 
-			if (nextNode != null) {
-			    msg = createRequest(request);
-			    //response = createResponse(request);
-			} else {
-			    response = createResponseFailure(request);
-			}
-			ForwardedMessage fwdMessage = new ForwardedMessage(nextNode, msg);
-			ForwardQ.enqueueRequest(fwdMessage);	
-		  
-            //response = rb.build();
-			logger.info("++++++++++++++++++++++ after building response ++++++++++++++++++++++");
-			System.out.println("THE--------------------RESPONSE from Delete------------------IS" +response);
-	
+	// String filePath = ds.removeDocumentfromDB(fileToBeRetrieved);
+	if (filePath != null) {
+
+	    System.out.println("file to remove is" + filePath);
+	    File file = new File(filePath);
+
+	    if (file.delete()) {
+		System.out.println(file.getName() + " is deleted!");
+	    } else {
+		System.out.println("Delete operation is failed.");
+	    }
+	    Request newReq = createRequest(request);
+	    String next = determineForwardNode(request);
+	    if (next != null) {
+		System.out.println("RemoveResource next node/=" + next);
+		ForwardedMessage msg = new ForwardedMessage(next, newReq);
+		ForwardQ.enqueueRequest(msg);
+	    } else {
+		Response newRes = createResponse(request);
+		return newRes;
+	    }
+
+	} else {
+	    Request newReq = createRequest(request);
+	    String next = determineForwardNode(request);
+	    if (next != null) {
+		System.out.println("RemoveResource next node/=" + next);
+		ForwardedMessage msg = new ForwardedMessage(next, newReq);
+		ForwardQ.enqueueRequest(msg);
+	    } else {
+		Response newRes = createResponse(request);
+		return newRes;
+	    }
+
+	}
+
 	return null;
     }
 
-    
-	/**
+    /**
      * Find the nearest node that has not received the request.
      * 
      * TODO this should use the heartbeat to determine which node is active in
@@ -206,11 +204,10 @@ public class RemoveResource implements Resource {
 	List<RoutingPath> paths = request.getHeader().getPathList();
 	Collection<NodeDesc> neighboursList = cfg.getNearest().getNearestNodes()
 		.values();
-	
-	
+
 	System.out.println("IN determineForwardNode1");
 	if (paths == null || paths.size() == 0) {
-	    System.out.println("paths==null");
+	    System.out.println("paths==null, picking first nearest node");
 	    System.out.println("NearestNode:"
 		    + cfg.getNearest().getNearestNodes().values());
 	    // pick first nearest
@@ -223,20 +220,23 @@ public class RemoveResource implements Resource {
 		    .println("RemoveResource: if path==null" + nd.getNodeId());
 	    return nd.getNodeId();
 	} else {
-	    System.out.println("RemoveResource: if path!=null");
+	    System.out.println("RemoveResource:determine nextnode if path!=null");
 	    // if this server has already seen this message return null
-	    for (RoutingPath rp : paths) {
-		for (NodeDesc nd : neighboursList) {
-		    System.out.println("RemoveResource: if path!=null"
-			    + nd.getNodeId());
-		    if (!nd.getNodeId().equalsIgnoreCase(rp.getNode()))
-			System.out.println("RemoveResource: if path!=null"
-				+ nd.getNodeId());
+
+	    for (NodeDesc nd : neighboursList) {
+		boolean found = true;
+		for (RoutingPath rp : paths) {
+		    if (rp.getNode().equalsIgnoreCase(nd.getNodeId())) {
+			found = false;
+			break;
+		    }
+		}
+		if (found) {
 		    return nd.getNodeId();
 		}
 	    }
 	}
-
 	return null;
     }
+
 }

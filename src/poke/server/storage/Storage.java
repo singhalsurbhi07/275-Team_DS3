@@ -19,40 +19,41 @@ import java.util.List;
 import java.util.Properties;
 
 import poke.server.vo.FileInfo;
-
 import eye.Comm.Document;
 import eye.Comm.NameSpace;
 import eye.Comm.Request;
 
 public interface Storage {
 
-	void init(Properties cfg);
+    void init(Properties cfg);
 
-	void release();
+    void release();
 
-	NameSpace getNameSpaceInfo(long spaceId);
+    NameSpace getNameSpaceInfo(long spaceId);
 
-	List<NameSpace> findNameSpaces(NameSpace criteria);
+    List<NameSpace> findNameSpaces(NameSpace criteria);
 
-	NameSpace createNameSpace(NameSpace space);
+    NameSpace createNameSpace(NameSpace space);
 
-	boolean removeNameSpace(long spaceId);
+    boolean removeNameSpace(long spaceId);
 
-	//boolean addDocument(String namespace, Document doc, String databaseName);
-	
-	//boolean addDocument(Request request, String tableName, String filePath);
-	
-	boolean addDocument(Request request, String filePath, String serverPort);
-	
-	boolean removeDocument(String namespace, long docId);
+    // boolean addDocument(String namespace, Document doc, String databaseName);
 
-	boolean updateDocument(String namespace, Document doc);
-	
-	//inserted on oct 29
-	boolean updateDocument(Request request, String filePath);
-	
-	//inserted on nov2
-	FileInfo findDocument(Request request, String fileName);
+    // boolean addDocument(Request request, String tableName, String filePath);
 
-	List<Document> findDocuments(String namespace, Document criteria);
+    boolean addDocument(Request request, String filePath, String serverPort);
+
+    boolean removeDocument(String fileName, long docID);
+
+    String removeDocumentfromDB(String fileName);
+
+    boolean updateDocument(String namespace, Document doc);
+
+    // inserted on oct 29
+    boolean updateDocument(Request request, String filePath);
+
+    // inserted on nov2
+    FileInfo findDocument(Request request, String fileName);
+
+    List<Document> findDocuments(String namespace, Document criteria);
 }

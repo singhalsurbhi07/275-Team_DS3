@@ -19,81 +19,86 @@ import java.util.List;
 import java.util.Properties;
 
 import poke.server.vo.FileInfo;
-
 import eye.Comm.Document;
 import eye.Comm.NameSpace;
 import eye.Comm.Request;
 
 public class NoOpStorage implements Storage {
 
-	@Override
-	public boolean addDocument(Request request, String filePath, String serverPort){
-		return true;
-		
-	}
+    @Override
+    public boolean addDocument(Request request, String filePath, String serverPort) {
+	return true;
 
-	@Override
-	public boolean removeDocument(String namespace, long docId) {
-		// TODO Auto-generated method stub
-		return true;
-	}
+    }
 
-	@Override
-	public boolean updateDocument(String namespace, Document doc) {
-		// TODO Auto-generated method stub
-		return true;
-	}
-	
-	@Override
-	public boolean updateDocument(Request request, String filePath){
-		return true;
-	}
+    @Override
+    public boolean removeDocument(String namespace, long docID) {
+	// TODO Auto-generated method stub
+	return true;
+    }
 
-	@Override
-	public List<Document> findDocuments(String namespace, Document criteria) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public boolean updateDocument(String namespace, Document doc) {
+	// TODO Auto-generated method stub
+	return true;
+    }
 
-	@Override
-	public NameSpace getNameSpaceInfo(long spaceId) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public boolean updateDocument(Request request, String filePath) {
+	return true;
+    }
 
-	@Override
-	public List<NameSpace> findNameSpaces(NameSpace criteria) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public List<Document> findDocuments(String namespace, Document criteria) {
+	// TODO Auto-generated method stub
+	return null;
+    }
 
-	@Override
-	public NameSpace createNameSpace(NameSpace space) {
-		// TODO Auto-generated method stub
-		return space;
-	}
+    @Override
+    public NameSpace getNameSpaceInfo(long spaceId) {
+	// TODO Auto-generated method stub
+	return null;
+    }
 
-	@Override
-	public boolean removeNameSpace(long spaceId) {
-		// TODO Auto-generated method stub
-		return true;
-	}
+    @Override
+    public List<NameSpace> findNameSpaces(NameSpace criteria) {
+	// TODO Auto-generated method stub
+	return null;
+    }
 
-	@Override
-	public void init(Properties cfg) {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public NameSpace createNameSpace(NameSpace space) {
+	// TODO Auto-generated method stub
+	return space;
+    }
 
-	@Override
-	public void release() {
-		// TODO Auto-generated method stub
-		
-	}
+    @Override
+    public boolean removeNameSpace(long spaceId) {
+	// TODO Auto-generated method stub
+	return true;
+    }
 
-	@Override
-	public FileInfo findDocument(Request request, String fileName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public void init(Properties cfg) {
+	// TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void release() {
+	// TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public FileInfo findDocument(Request request, String fileName) {
+	// TODO Auto-generated method stub
+	return null;
+    }
+
+    @Override
+    public String removeDocumentfromDB(String fileName) {
+	// TODO Auto-generated method stub
+	return null;
+    }
 }
