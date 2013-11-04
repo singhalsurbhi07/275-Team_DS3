@@ -101,6 +101,10 @@ public class ClientPrintListener implements ClientListener {
 			} else if (msg.getHeader().getRoutingId() == eye.Comm.Header.Routing.STATS) {
 				System.out.println(msg.getBody().getStats().getDocName()
 						+ " uploaded");
+			}
+				else if (msg.getHeader().getRoutingId() == eye.Comm.Header.Routing.DOCREMOVE) {
+					System.out.println(msg.getBody().getStats().getDocName()
+							+ " File Deleted Succesfully ");
 			}else{
 				System.out.println("No resorce ID set");
 			// for (int i = 0, I = msg.getBody().getDocsCount(); i < I; i++)
