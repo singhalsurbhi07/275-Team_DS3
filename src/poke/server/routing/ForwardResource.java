@@ -121,13 +121,19 @@ public class ForwardResource implements Resource {
 	System.out.println("hopcount"
 		+ request.getHeader().getRemainingHopCount());
 	GeneratedMessage msg = null;
-
+	ForwardedMessage fwdMessage = null;
 	if (nextNode != null && request.getHeader().getRemainingHopCount() > 0) {
 	    msg = createRequest(request);
+	    fwdMessage = new ForwardedMessage(nextNode, msg);
 	} else {
 	    msg = createResponse(request);
+	    int rpCount = request.getHeader().getPathCount();
+
+	    String next = request.getHeader().getPath(rpCount - 1).getNode();
+	    fwdMessage = new ForwardedMessage(next, msg);
+
 	}
-	ForwardedMessage fwdMessage = new ForwardedMessage(nextNode, msg);
+	// ForwardedMessage fwdMessage = new ForwardedMessage(nextNode, msg);
 	ForwardQ.enqueueRequest(fwdMessage);
 	return null;
     }
