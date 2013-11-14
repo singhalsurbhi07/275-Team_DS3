@@ -105,9 +105,6 @@ public class ServerConf {
 	public ResourceConf findById(int id) {
 		return asMap().get(id);
 	}
-	
-	
-	
 
 	public List<ResourceConf> getRouting() {
 		return routing;

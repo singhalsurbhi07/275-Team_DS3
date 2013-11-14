@@ -3,6 +3,8 @@ package poke.resources;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -42,8 +44,8 @@ public class RetrieveResource implements Resource {
 	public static final String sPass = "jdbc.password";
 	private ServerConf cfg;
 	public String adjacentNode = null;
-	
-	public ServerConf getCfg(){
+
+	public ServerConf getCfg() {
 		return cfg;
 	}
 
@@ -52,55 +54,111 @@ public class RetrieveResource implements Resource {
 	public RetrieveResource() {
 
 	}
-	
-	public void setCfg(){
+
+	public void setCfg() {
 		this.cfg = Server.getConf();
 	}
 
 	private Request createRequest(Request request) {
-	    RoutingPath rp = RoutingPath.newBuilder()
-	        .setNode(Server.getConf().getServer().getProperty("node.id"))
-	        .setTime(System.currentTimeMillis()).build();
+		RoutingPath rp = RoutingPath.newBuilder()
+				.setNode(Server.getConf().getServer().getProperty("node.id"))
+				.setTime(System.currentTimeMillis()).build();
 
-	    System.out.println("Retrieve Resource Adding Route Path");
-	    System.out.println(rp);
-	    int hopCount = (int) request.getHeader().getRemainingHopCount();
-	    hopCount--;
-	    
-	    Header newHeader = Header
-	        .newBuilder(request.getHeader())
-	        .setTime(System.currentTimeMillis())
-	        .setRemainingHopCount(hopCount).addPath(rp)
-	        .build();
+		System.out.println("Retrieve Resource Adding Route Path");
+		System.out.println(rp);
+		int hopCount = (int) request.getHeader().getRemainingHopCount();
+		hopCount--;
 
-	    Request newRequest = Request.newBuilder(request).setHeader(newHeader)
-	        .build();
+		Header newHeader = Header.newBuilder(request.getHeader())
+				.setTime(System.currentTimeMillis())
+				.setRemainingHopCount(hopCount).addPath(rp).build();
 
-	    for (RoutingPath rp1 : newHeader.getPathList()) {
-	        System.out.println("added pathlist");
-	        System.out.println(rp1);
-	    }
+		Request newRequest = Request.newBuilder(request).setHeader(newHeader)
+				.build();
 
-	    return newRequest;
-	    }
-	
-	private Response createResponse(Request request) {
+		for (RoutingPath rp1 : newHeader.getPathList()) {
+			System.out.println("added pathlist");
+			System.out.println(rp1);
+		}
 
-	    // fb.setTag(request.getBody().getFinger().getTag());
-	    Header fb = Header
-	        .newBuilder(request.getHeader())
-	        .setReplyCode(ReplyStatus.FAILURE)
-	        .setReplyMsg(
-	            "Not enough hop counts or not able to determine next node")
-	        .setOriginator(Server.getConf().getServer().getProperty("node.id"))
-	        .setToNode(request.getHeader().getOriginator())
-	        .build();
+		return newRequest;
+	}
 
-	    PayloadReply pb = PayloadReply.newBuilder()
-	        .build();
-	    return Response.newBuilder().setBody(pb).setHeader(fb).build();
-	    }
-	
+	private Response createResponseFailure(Request request) {
+
+		// fb.setTag(request.getBody().getFinger().getTag());
+
+		Header fb = Header
+				.newBuilder(request.getHeader())
+				.setReplyCode(ReplyStatus.FAILURE)
+				.setReplyMsg(
+						"Not enough hop counts or not able to determine next node")
+				.setOriginator(
+						Server.getConf().getServer().getProperty("node.id"))
+				.setToNode(request.getHeader().getOriginator()).build();
+
+		PayloadReply pb = PayloadReply.newBuilder().build();
+		return Response.newBuilder().setBody(pb).setHeader(fb).build();
+	}
+
+	private Response createResponseSuccess(Request request) {
+
+		// fb.setTag(request.getBody().getFinger().getTag());
+		Header fb = Header
+				.newBuilder(request.getHeader())
+				.setReplyCode(ReplyStatus.SUCCESS)
+				.setReplyMsg("Found the file")
+				.setOriginator(
+						Server.getConf().getServer().getProperty("node.id"))
+				.setToNode(request.getHeader().getOriginator()).build();
+
+		PayloadReply pb = PayloadReply.newBuilder().build();
+		return Response.newBuilder().setBody(pb).setHeader(fb).build();
+
+	}
+
+	private String determineForwardNode(Request request) {
+		System.out
+				.println("IN RETRIEVE RESOURCE ===============> determineForwardNode start");
+		List<RoutingPath> paths = request.getHeader().getPathList();
+		Collection<NodeDesc> neighboursList = cfg.getNearest()
+				.getNearestNodes().values();
+
+		// System.out.println("IN determineForwardNode1");
+		if (paths == null || paths.size() == 0) {
+			System.out.println("paths==null, picking first nearest node");
+			System.out.println("NearestNode:"
+					+ cfg.getNearest().getNearestNodes().values());
+			// pick first nearest
+			NodeDesc nd = cfg.getNearest().getNearestNodes().values()
+					.iterator().next();
+			if (nd == null)
+				System.out.println("nodedesc is null");
+
+			System.out.println("RETRIEVE Resource: if path==null"
+					+ nd.getNodeId());
+			return nd.getNodeId();
+		} else {
+			System.out
+					.println("RETRIEVE Resource:determine nextnode if path!=null");
+			// if this server has already seen this message return null
+
+			for (NodeDesc nd : neighboursList) {
+				boolean found = true;
+				for (RoutingPath rp : paths) {
+					if (rp.getNode().equalsIgnoreCase(nd.getNodeId())) {
+						found = false;
+						break;
+					}
+				}
+				if (found) {
+					return nd.getNodeId();
+				}
+			}
+		}
+		return null;
+	}
+
 	@Override
 	public Response process(Request request) {
 		Properties p = System.getProperties();
@@ -114,117 +172,80 @@ public class RetrieveResource implements Resource {
 				.findDocument(request, fileToBeRetrieved);
 		Response response = null;
 		eye.Comm.PayloadReply.Builder retrievePayload = null;
-		if(fileInfo != null){
+		if (fileInfo != null) {
 			String filePath = fileInfo.getFilePath();
 			String fileName = fileInfo.getFileName();
-			System.out.println("&&&&&&&&&&&&&& THE FILE PATH IS &&&&&&&&&&&&&77" + filePath);
+			System.out
+					.println("&&&&&&&&&&&&&& THE FILE PATH IS &&&&&&&&&&&&&77"
+							+ filePath);
 			try {
-				/*retrievedFile = Document.newBuilder()
-						.setChunkContent(readFileAsByteString(filePath)).setDocName(fileName).build();
-				retrievePayload = Payload.newBuilder();
-				retrievePayload.setDoc(retrievedFile);*/
-				
-				Response res=createResponse(request);
+				/*
+				 * retrievedFile = Document.newBuilder()
+				 * .setChunkContent(readFileAsByteString
+				 * (filePath)).setDocName(fileName).build(); retrievePayload =
+				 * Payload.newBuilder(); retrievePayload.setDoc(retrievedFile);
+				 */
+
+				Response res = createResponseSuccess(request);
 				Document d = Document.newBuilder().setDocName(fileName)
-				        .setChunkContent(readFileAsByteString(filePath)).build();
+						.setChunkContent(readFileAsByteString(filePath))
+						.build();
 				eye.Comm.PayloadReply.Builder pd = PayloadReply.newBuilder();
 				pd.setStats(d);
-				
-				Response.Builder resp=res.toBuilder().setBody(pd.build());
+
+				Response.Builder resp = res.toBuilder().setBody(pd.build());
 				return resp.build();
-				
-	
+
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+		} else {
+
+			/*
+			 * for (NodeDesc nn : cfg.getNearest().getNearestNodes().values()) {
+			 * adjacentNode = nn.getNodeId(); }
+			 */
+			setCfg();
+			if (cfg != null) {
+				// adjacentNode =
+				// cfg.getNearest().getNearestNodes().values().iterator().next().getNodeId();
+				adjacentNode = determineForwardNode(request);
+			} else {
+				System.out
+						.println("------------------CFG IS NULL-------------------------");
+			}
+			System.out
+					.println("nextNode in retrieve resource=================>"
+							+ adjacentNode);
+			GeneratedMessage msg = null;
+			ForwardedMessage fwdMessage;
+			if (adjacentNode != null) {
+				msg = createRequest(request);
+				// return null;
+			} else {
+				//msg = createResponseFailure(request);
+				return createResponseFailure(request);
+				
+				// return msg..
+
+			}
+			fwdMessage = new ForwardedMessage(adjacentNode, msg);
+			ForwardQ.enqueueRequest(fwdMessage);
+
 		}
-		else{
-			
-			/*for (NodeDesc nn : cfg.getNearest().getNearestNodes().values()) {
-			      adjacentNode = nn.getNodeId();
-			    }*/
-				setCfg();
-				if(cfg != null){
-				adjacentNode = cfg.getNearest().getNearestNodes().values().iterator().next().getNodeId();
-				}
-				else{
-					System.out.println ("------------------CFG IS NULL-------------------------");
-				}
-		      System.out.println("nextNode in retrieve resource=================>" + adjacentNode );
-		      GeneratedMessage msg = null;
 
-		      if (adjacentNode != null ) {
-		          msg = createRequest(request);
-		      } 
-		      else{
-		    	 msg = createResponse(request);
-		      }
-		      
-		      ForwardedMessage fwdMessage = new ForwardedMessage(adjacentNode, msg);
-		      ForwardQ.enqueueRequest(fwdMessage);
-			
-			
-		}
-			/*retrievedFile = Document.newBuilder()
-					.setChunkContent(readFileAsByteString(filePath)).setDocName(fileName).build();
-			retrievePayload = Payload.newBuilder();
-			retrievePayload.setDoc(retrievedFile);*/
-		
-			//Response.Builder rb = Response.newBuilder();
-
-            // metadata
-			/*Header header = ResourceUtil.buildHeaderFrom(request.getHeader(),
-                    ReplyStatus.SUCCESS, "File Retrieved", Server.getConf().getServer().getProperty("node.id"));
-			*/
-			//Header header = ResourceUtil.buildHeaderFrom(request.getHeader(), ReplyStatus.SUCCESS, "File Retrieved");
-			//Header.Builder h = header.toBuilder();
-			//h.setOriginator(Server.getConf().getServer().getProperty("node.id"));
-			//rb.setHeader(h);
-
-            
-            //PayloadReply.Builder payloadReply = PayloadReply.newBuilder();
-            
-           // if(retrievedFile != null){
-            	
-            //payloadReply.addDocs(retrievedFile);
-            //}
-            
-            //rb.setBody(payloadReply.build());
-            
-            
-            //rb.setBody(payloadReply.build());
-            
-            //Response reply = rb.build();
-            //return rb;
-
-/*
-			
-			Response.Builder res = Response.newBuilder();
-			res.setHeader(ResourceUtil.buildHeaderFrom(request.getHeader(),
-					ReplyStatus.SUCCESS, null));
-			PayloadReply.Builder payBuild = PayloadReply.newBuilder();
-			Document.Builder docBuild = Document.newBuilder();
-			docBuild.setDocName(request.getBody().getDoc().getDocName());
-			docBuild.s
-			payBuild.setStats(docBuild.build());
-			payBuild
-            response = Response.newBuilder().setHeader(h.build())
-					.setBody(payloadReply.build()).build();
- */			
-
-            //response = rb.build();
-			logger.info("++++++++++++++++++++++ after building response ++++++++++++++++++++++");
-			System.out.println("THE--------------------RESPONSE------------------IS" +response);
-		/*else {
-			// file is not present in this node.
-			// you will have to prepare an appropriate response
-			// take the next node and set it to the response.
-		}*/
+		logger.info("++++++++++++++++++++++ after building response ++++++++++++++++++++++");
+		System.out
+				.println("THE--------------------RESPONSE------------------IS"
+						+ response);
+		/*
+		 * else { // file is not present in this node. // you will have to
+		 * prepare an appropriate response // take the next node and set it to
+		 * the response. }
+		 */
 		return null;
-}		
-	
-
+	}
 
 	public ByteString readFileAsByteString(String fileLocation)
 			throws IOException {

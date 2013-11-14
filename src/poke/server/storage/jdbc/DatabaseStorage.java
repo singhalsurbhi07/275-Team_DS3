@@ -212,6 +212,7 @@ public class DatabaseStorage implements Storage {
 	String docName = request.getBody().getDoc().getDocName();
 	long fileSize = request.getBody().getDoc().getDocSize();
 	String origin = request.getHeader().getOriginator();
+	String namespace = request.getBody().getSpace().getName();
 
 	/*
 	 * System.out.println("Origin is " + origin); String [] splitArray =
@@ -238,9 +239,9 @@ public class DatabaseStorage implements Storage {
 	    } else {
 		// String query =
 		// "Insert into file_info(file_name,file_size,server_ip,server_port,file_path) values(?,?,?,?,?)";
-		String query = "Insert into file_info(file_name,file_size,server_ip,server_port,file_path) "
+		String query = "Insert into file_info(file_name,file_size,server_ip,server_port,file_path,namespace) "
 			+
-			"values(?,?,?,?,?)";
+			"values(?,?,?,?,?,?)";
 		PreparedStatement stmnt = conn.prepareStatement(query);
 		stmnt.setString(1, docName);
 		// stmnt.setString(2, namespace);
@@ -248,6 +249,7 @@ public class DatabaseStorage implements Storage {
 		stmnt.setString(3, host);
 		stmnt.setString(4, serverPort);
 		stmnt.setString(5, filePath);
+		stmnt.setString(6, namespace);
 		stmnt.execute();
 	    }
 
@@ -368,6 +370,7 @@ public class DatabaseStorage implements Storage {
 	try {
 	    conn = cpool.getConnection();
 	    String findFileQuery = "select * from file_info where file_name = ?";
+
 	    PreparedStatement findStmt = conn.prepareStatement(findFileQuery);
 	    findStmt.setString(1, fileName);
 	    ResultSet findrs = findStmt.executeQuery();

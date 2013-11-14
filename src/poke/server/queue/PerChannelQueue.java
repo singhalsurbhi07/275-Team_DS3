@@ -16,7 +16,6 @@
 package poke.server.queue;
 
 import java.lang.Thread.State;
-import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import org.jboss.netty.channel.Channel;
@@ -25,8 +24,6 @@ import org.jboss.netty.channel.ChannelFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import poke.server.ForwardQ;
-import poke.server.ForwardedMessage;
 import poke.server.Server;
 import poke.server.resources.Resource;
 import poke.server.resources.ResourceFactory;
@@ -37,7 +34,6 @@ import com.google.protobuf.GeneratedMessage;
 import eye.Comm.Header.ReplyStatus;
 import eye.Comm.Request;
 import eye.Comm.Response;
-import eye.Comm.RoutingPath;
 
 /**
  * A server queue exists for each connection (channel). A per-channel queue
@@ -280,28 +276,45 @@ public class PerChannelQueue implements ChannelQueue {
 			System.out.println("PerChannelQ: response target node:" + targetNode);
 			String currentNode = Server.getConf().getServer().getProperty("node.id");
 			if (!targetNode.equalsIgnoreCase(currentNode)) {
-			    System.out.println("PerChannel Q:Current Node" + currentNode);
-
-			    List<RoutingPath> rp = ((Response) msg).getHeader().getPathList();
-
-			    RoutingPath r = null;
-			    for (int i = rp.size() - 1; i > 0; i--) {
-				if (rp.get(i).getNode().equalsIgnoreCase(currentNode)) {
-				    r = rp.get(i - 1);
-				    break;
-				}
-			    }
-			    if (r != null) {
-				String dest = r.getNode();
-				System.out.println("response destination.." + dest);
-				ForwardedMessage fm = new ForwardedMessage(dest, res);
-				ForwardQ.enqueueResponse(fm);
+			    // System.out.println("PerChannel Q:Current Node" +
+			    // currentNode);
+			    //
+			    // List<RoutingPath> rp = ((Response)
+			    // msg).getHeader().getPathList();
+			    //
+			    // RoutingPath r = null;
+			    // for (int i = rp.size() - 1; i > 0; i--) {
+			    // if
+			    // (rp.get(i).getNode().equalsIgnoreCase(currentNode))
+			    // {
+			    // r = rp.get(i - 1);
+			    // break;
+			    // }
+			    // }
+			    // if (r != null) {
+			    // String dest = r.getNode();
+			    // System.out.println("response destination.." +
+			    // dest);
+			    // ForwardedMessage fm = new ForwardedMessage(dest,
+			    // res);
+			    // ForwardQ.enqueueResponse(fm);
+			    // } else {
+			    //
+			    // System.out.println("No node to forward to");
+			    // }
+			    Channel nextChannel = Server.reqChannel.get(res.getHeader().getTag());
+			    if (nextChannel == null) {
+				System.out
+					.println("PerQChannel:InboundWorker; No channel found to forward the resource");
 			    } else {
+				if (nextChannel.isWritable()) {
+				    System.out.println("PerChannelQ: nextchannel is writable");
+				    nextChannel.write(res);
+				}
 
-				System.out.println("No node to forward to");
 			    }
 			} else {
-			    Channel clientCh = Server.getClientChannel();
+			    Channel clientCh = Server.getClientConnection();
 			    if (clientCh.isWritable()) {
 				System.out.println("Client channel is writable");
 				clientCh.write(res);

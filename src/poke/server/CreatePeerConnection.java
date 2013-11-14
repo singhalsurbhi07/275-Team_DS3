@@ -6,10 +6,11 @@ import java.util.concurrent.Executors;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import poke.server.routing.ServerHandler;
 
 //import poke.client.ClientConnection.OutboundWorker;
 
@@ -20,7 +21,7 @@ public class CreatePeerConnection {
     private String host;
     private int port;
     private int mgmtPort;
-    private SimpleChannelHandler handler;
+    private ServerHandler handler;
     private ChannelFuture channel = null; // do not use directly call connect()!
     private ChannelFuture responseChannel = null; // do not use directly call
 						  // connect()!
@@ -32,7 +33,7 @@ public class CreatePeerConnection {
     // private ForwardWorker worker;
 
     public CreatePeerConnection(String host, int port, int mgmtPort,
-	    SimpleChannelHandler handler) {
+	    ServerHandler handler) {
 	this.host = host;
 	this.port = port;
 	this.mgmtPort = mgmtPort;

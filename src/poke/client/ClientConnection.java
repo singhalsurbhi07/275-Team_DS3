@@ -22,6 +22,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingDeque;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
@@ -35,6 +36,7 @@ import com.google.protobuf.GeneratedMessage;
 import eye.Comm.Document;
 import eye.Comm.Finger;
 import eye.Comm.Header;
+import eye.Comm.NameSpace;
 import eye.Comm.Payload;
 import eye.Comm.Request;
 
@@ -46,7 +48,7 @@ import eye.Comm.Request;
  */
 public class ClientConnection {
     protected static Logger logger = LoggerFactory.getLogger("client");
-
+    private static String originator = "zero";
     private String host;
     private int port;
     private ChannelFuture channel; // do not use directly call connect()!
@@ -54,6 +56,11 @@ public class ClientConnection {
     ClientDecoderPipeline clientPipeline;
     private LinkedBlockingDeque<com.google.protobuf.GeneratedMessage> outbound;
     private OutboundWorker worker;
+    public static final int ID_LENGTH = 6;
+
+    public String generateUniqueId() {
+	return RandomStringUtils.randomAlphanumeric(ID_LENGTH);
+    }
 
     protected ClientConnection(String host, int port) {
 	this.host = host;
@@ -90,22 +97,29 @@ public class ClientConnection {
 	}
     }
 
-    public void uploadFile(String filePath, String dest) throws IOException {
+    public void uploadFile(String namespace, String filePath, String dest) throws IOException {
 	String[] names = filePath.split("/");
 	int namesLength = names.length;
 	String fileName = names[namesLength - 1];
 	System.out.println("FileName =" + fileName);
 	long fileSize = new File(filePath).length();
 	System.out.println("The file size is =======>" + fileSize);
+	if (namespace == null) {
+	    namespace = "server" + originator;
+	}
+	String id = generateUniqueId();
 
 	Document d = Document.newBuilder().setDocName(fileName)
 		.setChunkContent(getFileAsByteString(filePath)).setDocSize(fileSize).build();
 	eye.Comm.Payload.Builder p = Payload.newBuilder();
 	p.setDoc(d);
+	NameSpace ns = NameSpace.newBuilder().setName(namespace).build();
+	p.setSpace(ns);
 
 	eye.Comm.Header.Builder h = Header.newBuilder();
 	// String originator = host + ":" + port;
-	h.setOriginator("zero");
+	h.setOriginator(originator);
+	h.setTag(id);
 	// h.setTag("test finger");
 	h.setTime(System.currentTimeMillis());
 	// h.setRoutingId(eye.Comm.Header.Routing.DOCADD);
@@ -129,6 +143,7 @@ public class ClientConnection {
 
     // **********************inserted on nov 2**********************************
     public void retrieveFile(String fileName) {
+	String id = generateUniqueId();
 
 	System.out.println("$$$$$$$$$$$$$$$$ INSIDE RETRIEVE FILE METHOD IN CC $$$$$$$$$$$$$$$$$$");
 
@@ -144,20 +159,12 @@ public class ClientConnection {
 
 	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
 	// requestHeader.setOriginator(host + ":" + port);
-	requestHeader.setOriginator("zero");
-	requestHeader.setTag("test finger");
+	requestHeader.setOriginator(originator);
+	requestHeader.setTag(id);
 	requestHeader.setTime(System.currentTimeMillis());
 	requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCFIND);
 	requestHeader.setRemainingHopCount(4);
 	requestBuilder.setHeader(requestHeader.build());
-
-	/*
-	 * Request retrieveRequest =
-	 * Request.newBuilder().setHeader(retrieveHeader.build()).
-	 * setBody(retrievePayload.build()).build();
-	 */
-	// logger.info(">>>>>>>>>>>>>>>>>>>>>>>The retrieved Request is >>>>>>>>>>>>>>>>>>"
-	// + retrieveRequest);
 
 	eye.Comm.Request fileRequest = requestBuilder.build();
 	try {
@@ -169,7 +176,7 @@ public class ClientConnection {
     }
 
     public void removeFile(String fileName) {
-
+	String id = generateUniqueId();
 	System.out.println("$$$$$$$$$$$$$$$$ INSIDE REMOVE FILE METHOD IN CC $$$$$$$$$$$$$$$$$$");
 
 	Document.Builder docBuilder = Document.newBuilder();
@@ -184,7 +191,8 @@ public class ClientConnection {
 
 	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
 	// requestHeader.setOriginator(host + ":" + port);
-	requestHeader.setOriginator("zero");
+	requestHeader.setOriginator(originator);
+	requestHeader.setTag(id);
 	requestHeader.setTime(System.currentTimeMillis());
 	requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCREMOVE);
 	requestBuilder.setHeader(requestHeader.build());

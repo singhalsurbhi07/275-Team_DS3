@@ -39,7 +39,7 @@ import eye.Comm.Network.Action;
  * 
  */
 public class HeartMonitor {
-  protected static Logger logger = LoggerFactory.getLogger("monitor");
+	protected static Logger logger = LoggerFactory.getLogger("monitor");
 
 	protected ChannelFuture channel; // do not use directly call connect()!
 	protected ClientBootstrap bootstrap;
@@ -119,7 +119,7 @@ public class HeartMonitor {
 		bootstrap.setOption("connectTimeoutMillis", 10000);
 		bootstrap.setOption("tcpNoDelay", true);
 		bootstrap.setOption("keepAlive", true);
-		
+
 		// case of a demo code
 		if (handler == null) {
 			HeartPrintListener print = new HeartPrintListener(host + ":" + port);
@@ -129,118 +129,111 @@ public class HeartMonitor {
 		bootstrap.setPipelineFactory(new MonitorPipeline(handler));
 	}
 
-   
+	/**
+	 * create connection to remote server
+	 * 
+	 * @return
+	 */
+	protected Channel connect() {
+		// Start the connection attempt.
+		if (channel == null) {
+			logger.info("connecting to " + host + ":" + port);
+			channel = bootstrap.connect(new InetSocketAddress(host, port));
+		}
 
-  /**
-   * create connection to remote server
-   * 
-   * @return
-   */
-  protected Channel connect() {
-    // Start the connection attempt.
-    if (channel == null) {
-      logger.info("connecting to " + host + ":" + port);
-      channel = bootstrap.connect(new InetSocketAddress(host, port));
-    }
+		// wait for the connection to establish
+		channel.awaitUninterruptibly();
 
-    // wait for the connection to establish
-    channel.awaitUninterruptibly();
+		if (channel.isDone() && channel.isSuccess()) {
+			// TODO add detection of closed channel
+			return channel.getChannel();
+		} else {
+			channel = null;
+			throw new RuntimeException("Not able to establish connection to server");
+		}
+	}
 
-    if (channel.isDone() && channel.isSuccess()) {
-      logger.info("HeartMonitor: channel successfully connected");
-      // TODO add detection of closed channel
-      return channel.getChannel();
-    } else {
-      channel = null;
-      throw new RuntimeException("Not able to establish connection to server");
-    }
-  }
+	public boolean isConnected() {
+		if (channel == null)
+			return false;
+		else
+			return channel.getChannel().isOpen();
+	}
 
-  public boolean isConnected() {
-    if (channel == null)
-      return false;
-    else
-      return channel.getChannel().isOpen();
-  }
+	public String getNodeInfo() {
+		if (host != null)
+			return host + ":" + port;
+		else
+			return "Unknown";
+	}
 
-  public String getNodeInfo() {
-    if (host != null)
-      return host + ":" + port;
-    else
-      return "Unknown";
-  }
+	/**
+	 * attempt to initialize (create) the connection to the node.
+	 * 
+	 * @return did a connect and message succeed
+	 */
+	public boolean initiateHeartbeat() {
+		// the join will initiate the other node's hbMgr to reply to
+		// this node's (caller) listeners.
 
-  /**
-   * attempt to initialize (create) the connection to the node.
-   * 
-   * @return did a connect and message succeed
-   */
-  public boolean initiateHeartbeat() {
-    // the join will initiate the other node's hbMgr to reply to
-    // this node's (caller) listeners.
+		boolean rtn = false;
+		try {
+			Channel ch = connect();
+			Network.Builder n = Network.newBuilder();
+			n.setNodeId("monitor");
+			n.setAction(Action.NODEJOIN);
+			Management.Builder m = Management.newBuilder();
+			m.setGraph(n.build());
+			ch.write(m.build());
+			rtn = true;
+		} catch (Exception e) {
+		}
 
-    boolean rtn = false;
-    try {
-      Channel ch = connect();
-      Network.Builder n = Network.newBuilder();
-      n.setNodeId("monitor");
-      n.setAction(Action.NODEJOIN);
-      Management.Builder m = Management.newBuilder();
-      m.setGraph(n.build());
-      ch.write(m.build());
-      rtn = true;
-    } catch (Exception e) {
-      logger
-          .info("HeartMonitor: initiateHeartbeat not ablt to write exception");
-    }
+		return rtn;
+	}
 
-    return rtn;
-  }
+	public String getHost() {
+		return host;
+	}
 
-  public String getHost() {
-    return host;
-  }
+	public int getPort() {
+		return port;
+	}
 
-  public int getPort() {
-    return port;
-  }
+	/**
+	 * for demonstration - this will enter a loop waiting for hbMgr messages.
+	 * 
+	 * Note this will return if the node is not available.
+	 */
+	protected void waitForever() {
+		try {
+			boolean connected = initiateHeartbeat();
+			while (connected) {
+				Thread.sleep(1000);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
-  /**
-   * for demonstration - this will enter a loop waiting for hbMgr messages.
-   * 
-   * Note this will return if the node is not available.
-   */
-  protected void waitForever() {
-    try {
-      boolean connected = initiateHeartbeat();
-      while (connected) {
-        Thread.sleep(1000);
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
+	/**
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		String host = "localhost";
+		int mport = 5670;
 
-  /**
-   * @param args
-   */
-  public static void main(String[] args) {
-    String host = "localhost";
-    int mport = 5670;
+		if (args.length == 2) {
+			try {
+				host = args[0];
+				mport = Integer.parseInt(args[1]);
+			} catch (NumberFormatException e) {
+				logger.warn("Unable to set port numbes, using default: 5670/5680");
+			}
+		}
 
-    System.out.println("args.length inside heart monitor >>>>>>>>>>>>>>>>>>"
-        + args.length);
-    if (args.length == 2) {
-      try {
-        host = args[0];
-        mport = Integer.parseInt(args[1]);
-      } catch (NumberFormatException e) {
-        logger.warn("Unable to set port numbes, using default: 5670/5680");
-      }
-    }
-
-    logger.info("trying to connect monitor to " + host + ":" + mport);
-    HeartMonitor hm = new HeartMonitor(host, mport);
-    hm.waitForever();
-  }
+		logger.info("trying to connect monitor to " + host + ":" + mport);
+		HeartMonitor hm = new HeartMonitor(host, mport);
+		hm.waitForever();
+	}
 }

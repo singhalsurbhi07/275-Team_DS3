@@ -36,132 +36,124 @@ import poke.server.management.ManagementQueue;
 import com.google.protobuf.GeneratedMessage;
 
 public class MonitorHandler extends SimpleChannelUpstreamHandler {
-  protected static Logger logger = LoggerFactory.getLogger("monitor");
+	protected static Logger logger = LoggerFactory.getLogger("monitor");
 
-  protected ConcurrentMap<String, MonitorListener> listeners = new ConcurrentHashMap<String, MonitorListener>();
-  private volatile Channel channel;
+	protected ConcurrentMap<String, MonitorListener> listeners = new ConcurrentHashMap<String, MonitorListener>();
+	private volatile Channel channel;
 
-  public MonitorHandler() {
-  }
+	public MonitorHandler() {
+	}
 
-  public String getNodeId() {
-    if (listeners.size() > 0)
-      return listeners.values().iterator().next().getListenerID();
-    else if (channel != null)
-      return channel.getLocalAddress().toString();
-    else
-      return String.valueOf(this.hashCode());
-  }
+	public String getNodeId() {
+		if (listeners.size() > 0)
+			return listeners.values().iterator().next().getListenerID();
+		else if (channel != null)
+			return channel.getLocalAddress().toString();
+		else
+			return String.valueOf(this.hashCode());
+	}
 
-  public void addListener(MonitorListener listener) {
-    if (listener == null)
-      return;
+	public void addListener(MonitorListener listener) {
+		if (listener == null)
+			return;
 
-    listeners.putIfAbsent(listener.getListenerID(), listener);
-  }
+		listeners.putIfAbsent(listener.getListenerID(), listener);
+	}
 
-  public boolean send(GeneratedMessage msg) {
-    // TODO a queue is needed to prevent overloading of the socket
-    // connection. For the demonstration, we don't need it
-    logger
-        .info("writing to channel:MonitorHandler" + channel.getLocalAddress());
-    ChannelFuture cf = channel.write(msg);
-    if (cf.isDone() && !cf.isSuccess()) {
-      logger.error("failed to poke!");
-      return false;
-    }
+	public boolean send(GeneratedMessage msg) {
+		// TODO a queue is needed to prevent overloading of the socket
+		// connection. For the demonstration, we don't need it
+		ChannelFuture cf = channel.write(msg);
+		if (cf.isDone() && !cf.isSuccess()) {
+			logger.error("failed to poke!");
+			return false;
+		}
 
-    return true;
-  }
+		return true;
+	}
 
-  public void handleMessage(eye.Comm.Management msg) {
-    for (String id : listeners.keySet()) {
-      MonitorListener ml = listeners.get(id);
+	public void handleMessage(eye.Comm.Management msg) {
+		for (String id : listeners.keySet()) {
+			MonitorListener ml = listeners.get(id);
 
-      // TODO this may need to be delegated to a thread pool to allow
-      // async processing of replies
-      ml.onMessage(msg);
-    }
-  }
+			// TODO this may need to be delegated to a thread pool to allow
+			// async processing of replies
+			ml.onMessage(msg);
+		}
+	}
 
-  @Override
-  public void channelOpen(ChannelHandlerContext ctx, ChannelStateEvent e)
-      throws Exception {
-    channel = e.getChannel();
-    super.channelOpen(ctx, e);
+	@Override
+	public void channelOpen(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		channel = e.getChannel();
+		super.channelOpen(ctx, e);
 
-    for (String id : listeners.keySet()) {
-      MonitorListener ml = listeners.get(id);
-      ml.connectionReady();
-    }
-  }
+		for (String id : listeners.keySet()) {
+			MonitorListener ml = listeners.get(id);
+			ml.connectionReady();
+		}
+	}
 
-  @Override
-  public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e)
-      throws Exception {
-    if (channel.isConnected()) {
-      channel.write(ChannelBuffers.EMPTY_BUFFER).addListener(
-          ChannelFutureListener.CLOSE);
+	@Override
+	public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		if (channel.isConnected()) {
+			channel.write(ChannelBuffers.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 
-      for (String id : listeners.keySet()) {
-        MonitorListener ml = listeners.get(id);
-        ml.connectionFailed();
-      }
-    }
-  }
+			for (String id : listeners.keySet()) {
+				MonitorListener ml = listeners.get(id);
+				ml.connectionFailed();
+			}
+		}
+	}
 
-  @Override
-  public void channelInterestChanged(ChannelHandlerContext ctx,
-      ChannelStateEvent e) throws Exception {
-    if (e.getState() == ChannelState.INTEREST_OPS
-        && ((Integer) e.getValue() == Channel.OP_WRITE)
-        || (Integer) e.getValue() == Channel.OP_READ_WRITE)
-      logger
-          .warn("channel is not writable! <--------------------------------------------");
+	@Override
+	public void channelInterestChanged(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+		if (e.getState() == ChannelState.INTEREST_OPS && ((Integer) e.getValue() == Channel.OP_WRITE)
+				|| (Integer) e.getValue() == Channel.OP_READ_WRITE)
+			logger.warn("channel is not writable! <--------------------------------------------");
 
-    // TODO notify channel temporarily not writable or when recovered
-  }
+		// TODO notify channel temporarily not writable or when recovered
+	}
 
-  @Override
-  public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
-    handleMessage((eye.Comm.Management) e.getMessage());
-  }
+	@Override
+	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
+		handleMessage((eye.Comm.Management) e.getMessage());
+	}
 
-  @Override
-  public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-    logger.error("exception: " + e.getCause(), e);
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
+		logger.error("exception: " + e.getCause(), e);
 
-    for (String id : listeners.keySet()) {
-      MonitorListener ml = listeners.get(id);
-      ml.connectionFailed();
-    }
+		for (String id : listeners.keySet()) {
+			MonitorListener ml = listeners.get(id);
+			ml.connectionFailed();
+		}
 
-    e.getChannel().close();
-  }
+		e.getChannel().close();
+	}
 
-  /**
-   * usage:
-   * 
-   * <pre>
-   * channel.getCloseFuture().addListener(new ManagementClosedListener(queue));
-   * </pre>
-   * 
-   * @author gash
-   * 
-   */
-  public static class MonitorClosedListener implements ChannelFutureListener {
-    // private ManagementQueue sq;
+	/**
+	 * usage:
+	 * 
+	 * <pre>
+	 * channel.getCloseFuture().addListener(new ManagementClosedListener(queue));
+	 * </pre>
+	 * 
+	 * @author gash
+	 * 
+	 */
+	public static class MonitorClosedListener implements ChannelFutureListener {
+		// private ManagementQueue sq;
 
-    public MonitorClosedListener(ManagementQueue sq) {
-      // this.sq = sq;
-    }
+		public MonitorClosedListener(ManagementQueue sq) {
+			// this.sq = sq;
+		}
 
-    @Override
-    public void operationComplete(ChannelFuture future) throws Exception {
-      // if (sq != null)
-      // sq.shutdown(true);
-      // sq = null;
-    }
+		@Override
+		public void operationComplete(ChannelFuture future) throws Exception {
+			// if (sq != null)
+			// sq.shutdown(true);
+			// sq = null;
+		}
 
-  }
+	}
 }

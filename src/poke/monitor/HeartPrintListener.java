@@ -23,12 +23,11 @@ public class HeartPrintListener implements MonitorListener {
 	public void onMessage(Management msg) {
 		if (logger.isDebugEnabled())
 			logger.debug(msg.getBeat().getNodeId());
+
 		if (msg.hasGraph()) {
 			logger.info("Received graph responses from " + msg.getBeat().getNodeId());
 		} else if (msg.hasBeat()) {
-			
 			logger.info("Received HB response: " + msg.getBeat().getNodeId());
-			
 		} else
 			logger.error("Received management response from unexpected host: " + msg.getBeat().getNodeId());
 	}

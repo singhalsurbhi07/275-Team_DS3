@@ -3,20 +3,21 @@ package poke.server;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder;
 import org.jboss.netty.handler.codec.frame.LengthFieldPrepender;
 import org.jboss.netty.handler.codec.protobuf.ProtobufDecoder;
 import org.jboss.netty.handler.codec.protobuf.ProtobufEncoder;
+
+import poke.server.routing.ServerHandler;
 
 //import poke.client.ClientHandler;
 //import poke.client.ClientListener;
 
 public class PeerDecoderPipeline implements ChannelPipelineFactory {
 
-    private SimpleChannelHandler handler = null;
+    private ServerHandler handler = null;
 
-    public PeerDecoderPipeline(SimpleChannelHandler handler) {
+    public PeerDecoderPipeline(ServerHandler handler) {
 	this.handler = handler;
     }
 

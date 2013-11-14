@@ -16,8 +16,6 @@
 package poke.resources;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +34,6 @@ import eye.Comm.Header.ReplyStatus;
 import eye.Comm.PayloadReply;
 import eye.Comm.Request;
 import eye.Comm.Response;
-import eye.Comm.RoutingPath;
 
 /**
  * The forward resource is used by the ResourceFactory to send requests to a
@@ -68,12 +65,14 @@ public class ReplicationResource implements Resource {
     }
 
     private Request createRequest(Request request, String NodeId) {
-	/*RoutingPath rp = RoutingPath.newBuilder()
-		.setNode(Server.getConf().getServer().getProperty("node.id"))
-		.setTime(System.currentTimeMillis()).build();
-
-	System.out.println("Forward Resource Adding Route Path");
-	System.out.println(rp);*/
+	/*
+	 * RoutingPath rp = RoutingPath.newBuilder()
+	 * .setNode(Server.getConf().getServer().getProperty("node.id"))
+	 * .setTime(System.currentTimeMillis()).build();
+	 * 
+	 * System.out.println("Forward Resource Adding Route Path");
+	 * System.out.println(rp);
+	 */
 
 	Header newHeader = Header
 		.newBuilder(request.getHeader())
@@ -85,10 +84,10 @@ public class ReplicationResource implements Resource {
 	Request newRequest = Request.newBuilder(request).setHeader(newHeader)
 		.build();
 
-	/*for (RoutingPath rp1 : newHeader.getPathList()) {
-	    System.out.println("added pathlist");
-	    System.out.println(rp1);
-	}*/
+	/*
+	 * for (RoutingPath rp1 : newHeader.getPathList()) {
+	 * System.out.println("added pathlist"); System.out.println(rp1); }
+	 */
 
 	return newRequest;
     }
@@ -100,10 +99,11 @@ public class ReplicationResource implements Resource {
 		.newBuilder(request.getHeader())
 		.setReplyCode(ReplyStatus.FAILURE)
 		.setReplyMsg(
-			"Not enough hop counts or not able to determine next node")
+			"File uploaded but not able to replicate to adjacent nodes")
 		.setOriginator(request.getHeader().getToNode())
 		.setOriginator(
-			Server.getConf().getServer().getProperty("node.id")).setRoutingId(request.getHeader().getRoutingId())
+			Server.getConf().getServer().getProperty("node.id"))
+		.setRoutingId(request.getHeader().getRoutingId())
 		.build();
 
 	PayloadReply pb = PayloadReply.newBuilder()
@@ -117,43 +117,60 @@ public class ReplicationResource implements Resource {
 
 	System.out.println("In ReplicationResource");
 	GeneratedMessage m = null;
-	
+
 	DocumentResource dr = new DocumentResource();
-	Response res=dr.process(request);
-	
-	//String nextNode = determineForwardNode(request);
+	Response res = dr.process(request);
+
+	// String nextNode = determineForwardNode(request);
 	ArrayList<NodeDesc> neighboursList = new ArrayList(cfg.getNearest().getNearestNodes()
-	.values());
-	
-	for(int i=0;i<neighboursList.size();i++)
-	{
+		.values());
+
+	/*
+	 * for(int i=0;i<neighboursList.size();i++) { nextNode =
+	 * neighboursList.get(i).getNodeId();
+	 * System.out.println("nextNode in replication resource=" + nextNode );
+	 * GeneratedMessage msg = null;
+	 * 
+	 * if (nextNode != null ) { msg = createRequest(request,nextNode); }
+	 * else { msg = createResponse(request); } ForwardedMessage fwdMessage =
+	 * new ForwardedMessage(nextNode, msg);
+	 * ForwardQ.enqueueRequest(fwdMessage); }
+	 * 
+	 * return res;
+	 */
+
+	if (!(res.getHeader().getReplyCode().equals(ReplyStatus.FAILURE))) {
+	    System.out.println("((((((((((((Respone in Replication  Resource)))))))))))))"
+		    + res.getHeader().getReplyCode());
+
+	    for (int i = 0; i < neighboursList.size(); i++)
+	    {
 		nextNode = neighboursList.get(i).getNodeId();
-	System.out.println("nextNode in replication resource=" + nextNode );
-	GeneratedMessage msg = null;
+		System.out.println("nextNode in replication resource=" + nextNode);
+		GeneratedMessage msg = null;
 
-	if (nextNode != null ) {
-	    msg = createRequest(request,nextNode);
-	} else {
-	    msg = createResponse(request);
+		if (nextNode != null) {
+		    msg = createRequest(request, nextNode);
+		} else {
+		    msg = createResponse(request);
+		}
+		ForwardedMessage fwdMessage = new ForwardedMessage(nextNode, msg);
+		ForwardQ.enqueueRequest(fwdMessage);
+	    }
 	}
-	ForwardedMessage fwdMessage = new ForwardedMessage(nextNode, msg);
-	ForwardQ.enqueueRequest(fwdMessage);
-	}
-	
+
 	return res;
-    
-    
 
- /**
-     * Find the nearest node that has not received the request.
-     * 
-     * TODO this should use the heartbeat to determine which node is active in
-     * its list.
-     * 
-     * @param request
-     * @return
-     */
-  
-	//return null;
+	/**
+	 * Find the nearest node that has not received the request.
+	 * 
+	 * TODO this should use the heartbeat to determine which node is active
+	 * in its list.
+	 * 
+	 * @param request
+	 * @return
+	 */
+
+	// return null;
     }
 }

@@ -64,6 +64,24 @@ public class DocumentResource implements Resource {
 	return Response.newBuilder().setBody(pb).setHeader(fb).build();
     }
 
+    private Response createResponseForAlreadyExists(Request request) {
+	Header fb = Header
+		.newBuilder(request.getHeader())
+		.setReplyCode(ReplyStatus.FAILURE)
+		.setReplyMsg(
+			"File Already Exists")
+		.setOriginator(request.getHeader().getToNode())
+		.setToNode(
+			request.getHeader().getOriginator())
+		.setRoutingId(request.getHeader().getRoutingId())
+		.build();
+
+	PayloadReply pb = PayloadReply.newBuilder()
+		.build();
+
+	return Response.newBuilder().setBody(pb).setHeader(fb).build();
+    }
+
     @Override
     public Response process(Request request) {
 	Properties p = System.getProperties();
@@ -73,8 +91,9 @@ public class DocumentResource implements Resource {
 	System.out.println("User directory--->>" + userDir);
 	String origID = request.getHeader().getOriginator();
 	String currentID = Server.getConf().getServer().getProperty("node.id");
+	String namespace = request.getBody().getSpace().getName();
 
-	String serverDir = userDir + "/server" + origID + "-" + currentID;
+	String serverDir = userDir + "/" + namespace;
 	File serverFolder = new File(serverDir);
 	if (!serverFolder.exists()) {
 	    if (serverFolder.mkdir()) {
@@ -112,6 +131,8 @@ public class DocumentResource implements Resource {
 		fileExists = true;
 		System.out
 			.println("File already exists##################################################.");
+		return createResponseForAlreadyExists(request);
+
 	    }
 
 	} catch (IOException e) {

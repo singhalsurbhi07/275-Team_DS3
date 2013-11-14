@@ -102,7 +102,7 @@ public class ForwardResource implements Resource {
 		.setReplyCode(ReplyStatus.FAILURE)
 		.setReplyMsg(
 			"Not enough hop counts or not able to determine next node")
-		.setOriginator(request.getHeader().getToNode())
+		.setToNode(request.getHeader().getOriginator())
 		.setOriginator(
 			Server.getConf().getServer().getProperty("node.id"))
 		.build();

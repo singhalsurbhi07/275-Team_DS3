@@ -21,7 +21,7 @@ import org.jboss.netty.channel.ChannelFutureListener;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
+import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +32,6 @@ import poke.server.queue.QueueFactory;
 import com.google.protobuf.GeneratedMessage;
 
 import eye.Comm.Request;
-import eye.Comm.Response;
 
 /**
  * As implemented, this server handler does not share queues or worker threads
@@ -51,106 +50,96 @@ import eye.Comm.Response;
  * @author gash
  * 
  */
-public class ServerHandler extends SimpleChannelHandler {
-	protected static Logger logger = LoggerFactory.getLogger("server");
+public class ServerHandler extends SimpleChannelUpstreamHandler {
+    protected static Logger logger = LoggerFactory.getLogger("server");
 
-	private ChannelQueue queue;
+    private ChannelQueue queue;
 
-	public ServerHandler() {
-		// logger.info("** ServerHandler created **");
+    public ServerHandler() {
+	// logger.info("** ServerHandler created **");
+    }
+
+    /**
+     * override this method to provide processing behavior
+     * 
+     * @param msg
+     */
+    public void handleMessage(GeneratedMessage req, Channel channel) {
+	if (req == null) {
+	    logger.error("ERROR: Unexpected content - null");
+	    return;
+	}
+	if (req instanceof Request) {
+	    System.out.println("msg is request");
+	    if (((Request) req)
+		    .getHeader()
+		    .getOriginator()
+		    .equalsIgnoreCase(
+			    Server.getConf().getServer().getProperty("node.id"))) {
+		Server.setClientConnection(channel);
+	    } else {
+		Server.reqChannel.put(((Request) req).getHeader().getTag(), channel);
+	    }
 	}
 
-	/**
-	 * override this method to provide processing behavior
-	 * 
-	 * @param msg
-	 */
-	public void handleMessage(GeneratedMessage req, Channel channel) {
-		if (req == null) {
-			logger.error("ERROR: Unexpected content - null");
-			return;
-		}
-		if (req instanceof Request) {
-			System.out.println("msg is request");
-			if (((Request) req)
-					.getHeader()
-					.getOriginator()
-					.equalsIgnoreCase(
-							Server.getConf().getServer().getProperty("node.id"))) {
-				Server.setClientChannel(channel);
-			}
-		}
+	// processing is deferred to the worker threads
+	queueInstance(channel).enqueueRequest(req);
+    }
 
-		// processing is deferred to the worker threads
-		queueInstance(channel).enqueueRequest(req);
+    /**
+     * Isolate how the server finds the queue. Note this cannot return null.
+     * 
+     * @param channel
+     * @return
+     */
+    private ChannelQueue queueInstance(Channel channel) {
+	// if a single queue is needed, this is where we would obtain a
+	// handle to it.
+
+	if (queue != null)
+	    return queue;
+	else {
+	    queue = QueueFactory.getInstance(channel);
+
+	    // on close remove from queue
+	    channel.getCloseFuture().addListener(new ConnectionClosedListener(queue));
 	}
 
-	/**
-	 * Isolate how the server finds the queue. Note this cannot return null.
-	 * 
-	 * @param channel
-	 * @return
-	 */
-	private ChannelQueue queueInstance(Channel channel) {
-		// if a single queue is needed, this is where we would obtain a
-		// handle to it.
-		if (queue != null)
-			return queue;
-		else {
-			queue = QueueFactory.getInstance(channel);
-			// on close remove from queue
-			channel.getCloseFuture().addListener(
-					new ConnectionClosedListener(queue));
-		}
-		return queue;
+	return queue;
+    }
+
+    @Override
+    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
+	handleMessage((com.google.protobuf.GeneratedMessage) e.getMessage(), e.getChannel());
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
+	logger.error("ServerHandler error, closing channel, reason: " + e.getCause(), e);
+	e.getCause().printStackTrace();
+	e.getChannel().close();
+    }
+
+    public static class ConnectionClosedListener implements ChannelFutureListener {
+	private ChannelQueue sq;
+
+	public ConnectionClosedListener(ChannelQueue sq) {
+	    this.sq = sq;
 	}
 
 	@Override
-	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) {
-		if (e.getMessage() instanceof Request) {
-			System.out
-					.println("Its a REQUEST......................................................");
-			handleMessage((Request) e.getMessage(), e.getChannel());
+	public void operationComplete(ChannelFuture future) throws Exception {
+	    // Note re-connecting to clients cannot be initiated by the server
+	    // therefore, the server should remove all pending (queued) tasks. A
+	    // more optimistic approach would be to suspend these tasks and move
+	    // them into a separate bucket for possible client re-connection
+	    // otherwise discard after some set period. This is a weakness of a
+	    // connection-required communication design.
 
-		} else if (e.getMessage() instanceof Response) {
-			System.out
-					.println("Its a RESPONSE......................................................");
-			handleMessage((Response) e.getMessage(), e.getChannel());
-
-			System.out.println();
-		}
+	    if (sq != null)
+		sq.shutdown(true);
+	    sq = null;
 	}
 
-	@Override
-	public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) {
-		logger.error(
-				"ServerHandler error, closing channel, reason: " + e.getCause(),
-				e);
-		e.getCause().printStackTrace();
-		e.getChannel().close();
-	}
-
-	public static class ConnectionClosedListener implements
-			ChannelFutureListener {
-		private ChannelQueue sq;
-
-		public ConnectionClosedListener(ChannelQueue sq) {
-			this.sq = sq;
-		}
-
-		@Override
-		public void operationComplete(ChannelFuture future) throws Exception {
-			// Note re-connecting to clients cannot be initiated by the server
-			// therefore, the server should remove all pending (queued) tasks. A
-			// more optimistic approach would be to suspend these tasks and move
-			// them into a separate bucket for possible client re-connection
-			// otherwise discard after some set period. This is a weakness of a
-			// connection-required communication design.
-
-			if (sq != null)
-				// sq.shutdown(true);
-				sq.shutdown(false);
-				sq = null;
-		}
-	}
+    }
 }

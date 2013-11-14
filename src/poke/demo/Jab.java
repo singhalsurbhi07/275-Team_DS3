@@ -22,36 +22,36 @@ import poke.client.ClientListener;
 import poke.client.ClientPrintListener;
 
 public class Jab {
-  private String tag;
-  private int count;
+    private String tag;
+    private int count;
 
-  public Jab(String tag) {
-    this.tag = tag;
-  }
+    public Jab(String tag) {
+	this.tag = tag;
+    }
 
-	public void run() throws IOException {
-		ClientConnection cc = ClientConnection.initConnection("localhost", 5570);
-		ClientListener listener = new ClientPrintListener("jab demo");
-		cc.addListener(listener);
+    public void run() throws IOException {
+	ClientConnection cc = ClientConnection.initConnection("localhost", 5570);
+	ClientListener listener = new ClientPrintListener("jab demo");
+	cc.addListener(listener);
 
-		for (int i = 0; i < 3; i++) {
-			count++;
-			cc.poke(tag, count);
-		}
+	for (int i = 0; i < 3; i++) {
+	    count++;
+	    cc.poke(tag, count);
 	}
+    }
 
-	public static void main(String[] args) {
-		try {
-			Jab jab = new Jab("jab");
-			jab.run();
+    public static void main(String[] args) {
+	try {
+	    Jab jab = new Jab("jab");
+	    jab.run();
 
-			// we are running asynchronously
-			System.out.println("\nExiting in 5 seconds");
-			Thread.sleep(5000);
-			System.exit(0);
+	    // we are running asynchronously
+	    System.out.println("\nExiting in 5 seconds");
+	    Thread.sleep(5000);
+	    System.exit(0);
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	} catch (Exception e) {
+	    e.printStackTrace();
 	}
+    }
 }

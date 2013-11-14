@@ -23,8 +23,6 @@ import org.jboss.netty.handler.codec.frame.LengthFieldPrepender;
 import org.jboss.netty.handler.codec.protobuf.ProtobufDecoder;
 import org.jboss.netty.handler.codec.protobuf.ProtobufEncoder;
 
-import poke.server.PeerListener;
-
 public class ServerDecoderPipeline implements ChannelPipelineFactory {
     private ServerHandler handler = new ServerHandler();
 

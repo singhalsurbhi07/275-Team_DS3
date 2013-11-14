@@ -63,6 +63,8 @@ public class Route {
 	BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
 	switch (choice) {
 	case 1:
+	    System.out.println("Enter the namespace where you want to upload");
+	    String namespace = bufferRead.readLine();
 	    System.out.println("Enter the complete path of the file you need to upload \n");
 	    filePath = bufferRead.readLine();
 	    System.out.println("Enter the ip of the node, where the file has to be uploaded");
@@ -72,7 +74,7 @@ public class Route {
 	    {
 		throw new FileNotFoundException("Yikes!");
 	    } else {
-		cc.uploadFile(filePath, dest);
+		cc.uploadFile(namespace, filePath, dest);
 	    }
 	    break;
 
@@ -132,7 +134,7 @@ public class Route {
 	    {
 		e.printStackTrace();
 	    }
-	} while (choice <= 2);
+	} while (choice < 4);
 
     }
 

@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.SimpleChannelHandler;
 
 import poke.server.management.HeartbeatData;
 import poke.server.routing.ServerHandler;
@@ -33,7 +32,7 @@ public class ForwardQWorker extends Thread {
     public void addNeighbouringNode(HeartbeatData node) {
 	// PeerHandler handler = new PeerHandler();
 	// handler.addListener(new PeerListener(node.getNodeId()));
-	SimpleChannelHandler handler = new ServerHandler();
+	ServerHandler handler = new ServerHandler();
 	// handler = new PeerHandler();
 
 	CreatePeerConnection pc = new CreatePeerConnection(node.getHost(),
@@ -129,7 +128,7 @@ public class ForwardQWorker extends Thread {
 		    ForwardQ.enqueueResponse(fm);
 		    // Response res = createResponse((Request) req);
 		} else {
-		    Channel ch = Server.getClientChannel();
+		    Channel ch = Server.getClientConnection();
 		    ch.write(res);
 		}
 		e.printStackTrace();
