@@ -31,7 +31,10 @@ import poke.server.resources.ResourceUtil;
 
 import com.google.protobuf.GeneratedMessage;
 
+import eye.Comm.Header;
 import eye.Comm.Header.ReplyStatus;
+import eye.Comm.Header.Routing;
+import eye.Comm.Payload;
 import eye.Comm.Request;
 import eye.Comm.Response;
 
@@ -302,6 +305,7 @@ public class PerChannelQueue implements ChannelQueue {
 			    //
 			    // System.out.println("No node to forward to");
 			    // }
+
 			    Channel nextChannel = Server.reqChannel.get(res.getHeader().getTag());
 			    if (nextChannel == null) {
 				System.out
@@ -314,14 +318,56 @@ public class PerChannelQueue implements ChannelQueue {
 
 			    }
 			} else {
-			    Channel clientCh = Server.getClientConnection();
-			    if (clientCh.isWritable()) {
-				System.out.println("Client channel is writable");
-				clientCh.write(res);
+			    if (res.getHeader().getRoutingId().equals(Routing.DOCQUERY)) {
+
+				if (res.getHeader().getReplyCode().equals(ReplyStatus.FAILURE)) {
+				    Header fb = Header
+					    .newBuilder()
+					    .setOriginator(
+						    Server.getConf().getServer()
+							    .getProperty("node.id"))
+					    .setTag(res.getHeader().getTag())
+					    .setIsExternal(true)
+					    .setRemainingHopCount(3)
+					    .build();
+
+				    Payload pb = Payload.newBuilder()
+					    .build();
+
+				    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
+					    .build();
+				    enqueueRequest(newReq);
+
+				} else {
+				    Header fb = Header
+					    .newBuilder()
+					    .setOriginator(
+						    Server.getConf().getServer()
+							    .getProperty("node.id"))
+					    .setTag(res.getHeader().getTag())
+					    .setToNode(res.getHeader().getOriginator())
+					    .setRoutingId(Routing.DOCFIND)
+					    .build();
+
+				    Payload pb = Payload.newBuilder()
+					    .build();
+
+				    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
+					    .build();
+				    enqueueRequest(newReq);
+
+				}
+
+			    } else {
+				Channel clientCh = Server.getClientConnection();
+				if (clientCh.isWritable()) {
+				    System.out.println("Client channel is writable");
+				    clientCh.write(res);
+				}
+				System.out.println("......");
+				System.out
+					.println("Send this message to client for this server");
 			    }
-			    System.out.println("......");
-			    System.out
-				    .println("Send this message to client for this server");
 			}
 		    }
 		} catch (InterruptedException ie) {

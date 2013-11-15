@@ -35,204 +35,236 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "conf")
 @XmlAccessorType(XmlAccessType.FIELD)
 public class ServerConf {
-	private GeneralConf server;
-	private NearestConf nearest;
-	private List<ResourceConf> routing;
+    private GeneralConf server;
+    private NearestConf nearest;
+    private List<ResourceConf> routing;
+    private ExternalConf external;
 
-	private volatile HashMap<Integer, ResourceConf> idToRsc;
+    private volatile HashMap<Integer, ResourceConf> idToRsc;
 
-	private HashMap<Integer, ResourceConf> asMap() {
-		if (idToRsc != null)
-			return idToRsc;
+    private HashMap<Integer, ResourceConf> asMap() {
+	if (idToRsc != null)
+	    return idToRsc;
 
+	if (idToRsc == null) {
+	    synchronized (this) {
 		if (idToRsc == null) {
-			synchronized (this) {
-				if (idToRsc == null) {
-					idToRsc = new HashMap<Integer, ResourceConf>();
-					if (routing != null) {
-						for (ResourceConf entry : routing) {
-							idToRsc.put(entry.id, entry);
-						}
-					}
-				}
+		    idToRsc = new HashMap<Integer, ResourceConf>();
+		    if (routing != null) {
+			for (ResourceConf entry : routing) {
+			    idToRsc.put(entry.id, entry);
 			}
+		    }
 		}
-
-		return idToRsc;
+	    }
 	}
 
-	public void addNearestNode(NodeDesc node) {
-		if (nearest == null)
-			nearest = new NearestConf();
+	return idToRsc;
+    }
 
-		nearest.add(node);
+    public void addNearestNode(NodeDesc node) {
+	if (nearest == null)
+	    nearest = new NearestConf();
+
+	nearest.add(node);
+    }
+
+    public ExternalConf getExternal() {
+	return external;
+    }
+
+    public NearestConf getNearest() {
+	return nearest;
+    }
+
+    public void setNearest(NearestConf nearest) {
+	// TODO should be a deep copy
+	this.nearest = nearest;
+    }
+
+    public void addGeneral(String name, String value) {
+	if (server == null)
+	    server = new GeneralConf();
+
+	server.add(name, value);
+    }
+
+    public GeneralConf getServer() {
+	return server;
+    }
+
+    public void setServer(GeneralConf server) {
+	// TODO should be a deep copy
+	this.server = server;
+    }
+
+    public void addResource(ResourceConf entry) {
+	if (entry == null)
+	    return;
+	else if (routing == null)
+	    routing = new ArrayList<ResourceConf>();
+
+	routing.add(entry);
+    }
+
+    public ResourceConf findById(int id) {
+	return asMap().get(id);
+    }
+
+    public List<ResourceConf> getRouting() {
+	return routing;
+    }
+
+    public void setRouting(List<ResourceConf> conf) {
+	this.routing = conf;
+    }
+
+    /**
+     * storage setup and configuration
+     * 
+     * @author gash1
+     * 
+     */
+    @XmlRootElement(name = "general")
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static final class GeneralConf {
+	private TreeMap<String, String> general;
+
+	public String getProperty(String name) {
+	    return general.get(name);
 	}
 
-	public NearestConf getNearest() {
-		return nearest;
+	public void add(String name, String value) {
+	    if (name == null)
+		return;
+	    else if (general == null)
+		general = new TreeMap<String, String>();
+
+	    general.put(name, value);
 	}
 
-	public void setNearest(NearestConf nearest) {
-		// TODO should be a deep copy
-		this.nearest = nearest;
+	public TreeMap<String, String> getGeneral() {
+	    return general;
 	}
 
-	public void addGeneral(String name, String value) {
-		if (server == null)
-			server = new GeneralConf();
+	public void setGeneral(TreeMap<String, String> general) {
+	    this.general = general;
+	}
+    }
 
-		server.add(name, value);
+    @XmlRootElement(name = "external")
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static final class ExternalConf {
+	private TreeMap<String, NodeDesc> external;
+
+	public NodeDesc getNode(String name) {
+	    return external.get(name);
 	}
 
-	public GeneralConf getServer() {
-		return server;
+	public void add(NodeDesc node) {
+	    if (node == null)
+		return;
+	    else if (external == null)
+		external = new TreeMap<String, NodeDesc>();
+
+	    external.put(node.getNodeId(), node);
 	}
 
-	public void setServer(GeneralConf server) {
-		// TODO should be a deep copy
-		this.server = server;
+	public TreeMap<String, NodeDesc> getExternalNodes() {
+	    return external;
 	}
 
-	public void addResource(ResourceConf entry) {
-		if (entry == null)
-			return;
-		else if (routing == null)
-			routing = new ArrayList<ResourceConf>();
+	public void setExtrenalNodes(TreeMap<String, NodeDesc> external) {
+	    this.external = external;
+	}
+    }
 
-		routing.add(entry);
+    /**
+     * storage setup and configuration
+     * 
+     * @author gash1
+     * 
+     */
+    @XmlRootElement(name = "nearest")
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static final class NearestConf {
+	private TreeMap<String, NodeDesc> nearest;
+
+	public NodeDesc getNode(String name) {
+	    return nearest.get(name);
 	}
 
-	public ResourceConf findById(int id) {
-		return asMap().get(id);
+	public void add(NodeDesc node) {
+	    if (node == null)
+		return;
+	    else if (nearest == null)
+		nearest = new TreeMap<String, NodeDesc>();
+
+	    nearest.put(node.getNodeId(), node);
 	}
 
-	public List<ResourceConf> getRouting() {
-		return routing;
+	public TreeMap<String, NodeDesc> getNearestNodes() {
+	    return nearest;
 	}
 
-	public void setRouting(List<ResourceConf> conf) {
-		this.routing = conf;
+	public void setNearestNodes(TreeMap<String, NodeDesc> nearest) {
+	    this.nearest = nearest;
+	}
+    }
+
+    /**
+     * command (request) delegation
+     * 
+     * @author gash1
+     * 
+     */
+    @XmlRootElement(name = "entry")
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static final class ResourceConf {
+	private int id;
+	private String name;
+	private String clazz;
+	private boolean enabled;
+
+	public ResourceConf() {
 	}
 
-	/**
-	 * storage setup and configuration
-	 * 
-	 * @author gash1
-	 * 
-	 */
-	@XmlRootElement(name = "general")
-	@XmlAccessorType(XmlAccessType.FIELD)
-	public static final class GeneralConf {
-		private TreeMap<String, String> general;
-
-		public String getProperty(String name) {
-			return general.get(name);
-		}
-
-		public void add(String name, String value) {
-			if (name == null)
-				return;
-			else if (general == null)
-				general = new TreeMap<String, String>();
-
-			general.put(name, value);
-		}
-
-		public TreeMap<String, String> getGeneral() {
-			return general;
-		}
-
-		public void setGeneral(TreeMap<String, String> general) {
-			this.general = general;
-		}
+	public ResourceConf(int id, String name, String clazz) {
+	    this.id = id;
+	    this.name = name;
+	    this.clazz = clazz;
 	}
 
-	/**
-	 * storage setup and configuration
-	 * 
-	 * @author gash1
-	 * 
-	 */
-	@XmlRootElement(name = "nearest")
-	@XmlAccessorType(XmlAccessType.FIELD)
-	public static final class NearestConf {
-		private TreeMap<String, NodeDesc> nearest;
-
-		public NodeDesc getNode(String name) {
-			return nearest.get(name);
-		}
-
-		public void add(NodeDesc node) {
-			if (node == null)
-				return;
-			else if (nearest == null)
-				nearest = new TreeMap<String, NodeDesc>();
-
-			nearest.put(node.getNodeId(), node);
-		}
-
-		public TreeMap<String, NodeDesc> getNearestNodes() {
-			return nearest;
-		}
-
-		public void setNearestNodes(TreeMap<String, NodeDesc> nearest) {
-			this.nearest = nearest;
-		}
+	public int getId() {
+	    return id;
 	}
 
-	/**
-	 * command (request) delegation
-	 * 
-	 * @author gash1
-	 * 
-	 */
-	@XmlRootElement(name = "entry")
-	@XmlAccessorType(XmlAccessType.FIELD)
-	public static final class ResourceConf {
-		private int id;
-		private String name;
-		private String clazz;
-		private boolean enabled;
-
-		public ResourceConf() {
-		}
-
-		public ResourceConf(int id, String name, String clazz) {
-			this.id = id;
-			this.name = name;
-			this.clazz = clazz;
-		}
-
-		public int getId() {
-			return id;
-		}
-
-		public void setId(int id) {
-			this.id = id;
-		}
-
-		public String getName() {
-			return name;
-		}
-
-		public void setName(String name) {
-			this.name = name;
-		}
-
-		public String getClazz() {
-			return clazz;
-		}
-
-		public void setClazz(String clazz) {
-			this.clazz = clazz;
-		}
-
-		public boolean isEnabled() {
-			return enabled;
-		}
-
-		public void setEnabled(boolean enabled) {
-			this.enabled = enabled;
-		}
+	public void setId(int id) {
+	    this.id = id;
 	}
+
+	public String getName() {
+	    return name;
+	}
+
+	public void setName(String name) {
+	    this.name = name;
+	}
+
+	public String getClazz() {
+	    return clazz;
+	}
+
+	public void setClazz(String clazz) {
+	    this.clazz = clazz;
+	}
+
+	public boolean isEnabled() {
+	    return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+	    this.enabled = enabled;
+	}
+    }
 }

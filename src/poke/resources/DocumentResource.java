@@ -93,7 +93,8 @@ public class DocumentResource implements Resource {
 	String currentID = Server.getConf().getServer().getProperty("node.id");
 	String namespace = request.getBody().getSpace().getName();
 
-	String serverDir = userDir + "/" + namespace;
+	String serverDir = userDir + "/" + Server.getConf().getServer().getProperty("node.id")
+		+ "/" + namespace;
 	File serverFolder = new File(serverDir);
 	if (!serverFolder.exists()) {
 	    if (serverFolder.mkdir()) {
