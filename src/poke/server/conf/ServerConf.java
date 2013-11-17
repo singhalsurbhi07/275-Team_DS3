@@ -69,6 +69,14 @@ public class ServerConf {
 	nearest.add(node);
     }
 
+    //**
+    public void addExternalNode(NodeDesc node){
+    if(external == null)
+    	external = new ExternalConf();
+    
+    external.add(node);
+    }
+    //**
     public ExternalConf getExternal() {
 	return external;
     }
@@ -82,6 +90,12 @@ public class ServerConf {
 	this.nearest = nearest;
     }
 
+    //**
+    public void setExternal(ExternalConf external){
+    	this.external = external;
+    }
+    //**
+    
     public void addGeneral(String name, String value) {
 	if (server == null)
 	    server = new GeneralConf();
@@ -174,7 +188,7 @@ public class ServerConf {
 	    return external;
 	}
 
-	public void setExtrenalNodes(TreeMap<String, NodeDesc> external) {
+	public void setExternalNodes(TreeMap<String, NodeDesc> external) {
 	    this.external = external;
 	}
     }

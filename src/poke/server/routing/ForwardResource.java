@@ -79,26 +79,21 @@ public class ForwardResource implements Resource {
     	String next = nextPath.getNode();
     	System.out.println("The value of next node in determine doc retrieve node is ===============" + next);
     	
-    	  	return next;
+    	return next;
     }
 
     private Request createRequest(Request request) {
-	RoutingPath rp = RoutingPath.newBuilder()
-		.setNode(Server.getConf().getServer().getProperty("node.id"))
-		.setTime(System.currentTimeMillis()).build();
+	RoutingPath rp = RoutingPath.newBuilder().setNode(Server.getConf().getServer().getProperty("node.id"))
+					.setTime(System.currentTimeMillis()).build();
 
 	System.out.println("Forward Resource Adding Route Path");
 	System.out.println(rp);
 
-	Header newHeader = Header
-		.newBuilder(request.getHeader())
-		.setTime(System.currentTimeMillis())
-		.setRemainingHopCount(
-			request.getHeader().getRemainingHopCount()).addPath(rp)
-		.build();
+	Header newHeader = Header.newBuilder(request.getHeader()).setTime(System.currentTimeMillis())
+						.setRemainingHopCount(request.getHeader().getRemainingHopCount()).addPath(rp)
+						.build();
 
-	Request newRequest = Request.newBuilder(request).setHeader(newHeader)
-		.build();
+	Request newRequest = Request.newBuilder(request).setHeader(newHeader).build();
 
 	for (RoutingPath rp1 : newHeader.getPathList()) {
 	    System.out.println("added pathlist");
@@ -132,7 +127,7 @@ public class ForwardResource implements Resource {
 	String nextNode;
 
 	System.out.println("In ForwardResource");
-	System.out.println("THE REQUEST IN FORWARD RESOURCE BEFOR DOCFIND IS  ======================" + request);
+	System.out.println("THE REQUEST IN FORWARD RESOURCE BEFORE DOCFIND IS  ======================" + request);
 	if(request.getHeader().getRoutingId().equals(Routing.DOCFIND)){
 		
 		
