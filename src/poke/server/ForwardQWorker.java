@@ -30,116 +30,117 @@ public class ForwardQWorker extends Thread {
      * @param node
      */
     public void addNeighbouringNode(HeartbeatData node) {
-	// PeerHandler handler = new PeerHandler();
-	// handler.addListener(new PeerListener(node.getNodeId()));
-	ServerHandler handler = new ServerHandler();
-	// handler = new PeerHandler();
+// PeerHandler handler = new PeerHandler();
+// handler.addListener(new PeerListener(node.getNodeId()));
+ServerHandler handler = new ServerHandler();
+// handler = new PeerHandler();
 
-	CreatePeerConnection pc = new CreatePeerConnection(node.getHost(),
-		node.getPort(), node.getMgmtport(), handler);
-	allPeerConnections.put(node.getNodeId(), pc);
+CreatePeerConnection pc = new CreatePeerConnection(node.getHost(),
+node.getPort(), node.getMgmtport(), handler);
+allPeerConnections.put(node.getNodeId(), pc);
     }
 
     // ClientConnection conn;
     boolean forever = true;
 
     public ForwardQWorker() {
-	if (ForwardQ.forwardingQ == null)
-	    throw new RuntimeException("connection worker detected null queue");
+if (ForwardQ.forwardingQ == null)
+   throw new RuntimeException("connection worker detected null queue");
     }
 
     public static ForwardQWorker getInstance() {
-	instance.compareAndSet(null, new ForwardQWorker());
-	return instance.get();
+instance.compareAndSet(null, new ForwardQWorker());
+return instance.get();
     }
 
     private Response createResponse(Request request) {
-	Header fb = Header
-		.newBuilder(request.getHeader())
-		.setReplyCode(ReplyStatus.FAILURE)
-		.setReplyMsg(
-			"Operation cannot be completed")
-		.setOriginator(Server.getConf().getServer().getProperty("node.id"))
-		.setToNode(
-			request.getHeader().getOriginator())
-		.build();
+Header fb = Header
+.newBuilder(request.getHeader())
+.setReplyCode(ReplyStatus.FAILURE)
+.setReplyMsg(
+"Operation cannot be completed")
+.setOriginator(Server.getConf().getServer().getProperty("node.id"))
+.setToNode(
+request.getHeader().getOriginator())
+.build();
 
-	PayloadReply pb = PayloadReply.newBuilder()
-		.build();
+PayloadReply pb = PayloadReply.newBuilder()
+.build();
 
-	return Response.newBuilder().setBody(pb).setHeader(fb).build();
+return Response.newBuilder().setBody(pb).setHeader(fb).build();
 
     }
 
     @Override
     public void run() {
-	System.out.println("ForwardQWorker Working!!!!!!!!");
+System.out.println("ForwardQWorker Working!!!!!!!!");
 
-	while (forever) {
-	    if (!forever && ForwardQ.forwardingQ.size() == 0)
-		break;
+while (forever) {
+   if (!forever && ForwardQ.forwardingQ.size() == 0)
+break;
 
-	    System.out.println("Size: " + ForwardQ.forwardingQ.size());
-	    // block until a message is enqueued
-	    ForwardedMessage msg = null;
+   System.out.println("Size: " + ForwardQ.forwardingQ.size());
+   // block until a message is enqueued
+   ForwardedMessage msg = null;
 
-	    try {
-		msg = ForwardQ.forwardingQ.take();
-		System.out.println();
-		GeneratedMessage req = msg.getMsg();
-		String dest = msg.getToNode();
-		System.out.println("ForwardQWorker:destination node:" + dest);
-		CreatePeerConnection pc = allPeerConnections.get(dest);
-		if (pc == null) {
-		    System.out.println("ForwardQWorker:pc is null");
-		} else {
-		    System.out.println("ForwardQWorker:pc is not null");
-		}
-		Channel ch = null;
+   try {
+msg = ForwardQ.forwardingQ.take();
+System.out.println();
+GeneratedMessage req = msg.getMsg();
+String dest = msg.getToNode();
+System.out.println("ForwardQWorker:destination node:" + dest);
 
-		if (req instanceof Request) {
-		    ch = pc.connect();
-		} else if (req instanceof Response) {
-		    ch = pc.responseConnect();
-		}
+Channel ch = null;
 
-		if (ch != null && ch.isWritable()) {
-		    System.out.println("Channel is writable");
-		    ch.write(req);
-		} else {
+if (req instanceof Request) {
+   CreatePeerConnection pc = allPeerConnections.get(dest);
+   if (pc == null) {
+System.out.println("ForwardQWorker:pc is null");
+   } else {
+System.out.println("ForwardQWorker:pc is not null");
+   }
+   ch = pc.connect();
+} else if (req instanceof Response) {
+   ch = Server.reqChannel.get(((Response) req).getHeader().getTag());
+}
 
-		    ForwardQ.forwardingQ.putFirst(msg);
-		}
-	    } catch (InterruptedException ie) {
-		break;
-	    } catch (Exception e) {
-		System.out.println("ForwardQWorke:It is in catch exception");
+if (ch != null && ch.isWritable()) {
+   System.out.println("Channel is writable");
+   ch.write(req);
+} else {
 
-		Request r = (Request) msg.getMsg();
-		Response res = createResponse(r);
+   ForwardQ.forwardingQ.putFirst(msg);
+}
+   } catch (InterruptedException ie) {
+break;
+   } catch (Exception e) {
+System.out.println("ForwardQWorke:It is in catch exception");
 
-		int rpCount = r.getHeader().getPathCount();
-		if (rpCount > 1) {
-		    System.out.println("ForwardQ Worker::rpCount" + rpCount);
-		    String next = r.getHeader().getPath(rpCount - 2).getNode();
+Request r = (Request) msg.getMsg();
+Response res = createResponse(r);
 
-		    System.out.println("ForwardQ Worker::next" + next);
-		    ForwardedMessage fm = new ForwardedMessage(next, res);
-		    ForwardQ.enqueueResponse(fm);
-		    // Response res = createResponse((Request) req);
-		} else {
-		    Channel ch = Server.getClientConnection();
-		    ch.write(res);
-		}
-		e.printStackTrace();
-		System.out.println("ForwardQWorker: error in writing in the cjannel");
-		// break;
-	    }
-	}
+int rpCount = r.getHeader().getPathCount();
+if (rpCount > 1) {
+   System.out.println("ForwardQ Worker::rpCount" + rpCount);
+   String next = r.getHeader().getPath(rpCount - 2).getNode();
 
-	if (!forever) {
-	    System.out.println("ForwardQWorker: error ! forever loop");
-	    // ClientConnection.logger.info("connection queue closing");
-	}
+   System.out.println("ForwardQ Worker::next" + next);
+   ForwardedMessage fm = new ForwardedMessage(next, res);
+   ForwardQ.enqueueResponse(fm);
+   // Response res = createResponse((Request) req);
+} else {
+   Channel ch = Server.getClientConnection();
+   ch.write(res);
+}
+e.printStackTrace();
+System.out.println("ForwardQWorker: error in writing in the cjannel");
+// break;
+   }
+}
+
+if (!forever) {
+   System.out.println("ForwardQWorker: error ! forever loop");
+   // ClientConnection.logger.info("connection queue closing");
+}
     }
 }

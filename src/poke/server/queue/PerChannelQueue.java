@@ -350,13 +350,11 @@ public class PerChannelQueue implements ChannelQueue {
 							} else {
 								Channel clientCh = Server.getClientConnection();
 								if (clientCh.isWritable()) {
-									System.out
-											.println("Client channel is writable");
+									System.out.println("Client channel is writable");
 									clientCh.write(res);
 								}
 								System.out.println("......");
-								System.out
-										.println("Send this message to client for this server");
+								System.out.println("Send this message to client for this server");
 							}
 						}
 					}
