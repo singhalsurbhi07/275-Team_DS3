@@ -26,6 +26,7 @@ import poke.server.conf.ServerConf;
 import poke.server.conf.ServerConf.ResourceConf;
 import poke.server.routing.ForwardResource;
 import eye.Comm.Header;
+import eye.Comm.Header.Routing;
 
 /**
  * Resource factory provides how the server manages resource creation. We hide
@@ -45,86 +46,85 @@ import eye.Comm.Header;
  * 
  */
 public class ResourceFactory {
-  protected static Logger logger = LoggerFactory.getLogger("server");
+    protected static Logger logger = LoggerFactory.getLogger("server");
 
-  private static ServerConf cfg;
-  private static AtomicReference<ResourceFactory> factory = new AtomicReference<ResourceFactory>();
+    private static ServerConf cfg;
+    private static AtomicReference<ResourceFactory> factory = new AtomicReference<ResourceFactory>();
 
-  public static void initialize(ServerConf cfg) {
-    try {
-      ResourceFactory.cfg = cfg;
-      factory.compareAndSet(null, new ResourceFactory());
-    } catch (Exception e) {
-      logger.error("failed to initialize ResourceFactory", e);
+    public static void initialize(ServerConf cfg) {
+	try {
+	    ResourceFactory.cfg = cfg;
+	    factory.compareAndSet(null, new ResourceFactory());
+	} catch (Exception e) {
+	    logger.error("failed to initialize ResourceFactory", e);
+	}
     }
-  }
 
-  public static ResourceFactory getInstance() {
-    ResourceFactory rf = factory.get();
-    if (rf == null)
-      throw new RuntimeException("Server not intialized");
+    public static ResourceFactory getInstance() {
+	ResourceFactory rf = factory.get();
+	if (rf == null)
+	    throw new RuntimeException("Server not intialized");
 
-    return rf;
-  }
-
-  private ResourceFactory() {
-  }
-
-  /**
-   * Obtain a resource
-   * 
-   * @param route
-   * @return
-   * @throws
-   * @throws ClassNotFoundException
-   */
-  public Resource resourceInstance(Header header) {
-    Resource rsc = null;
-    // is the message for this server?
-    if (header.hasToNode()) {
-      String iam = cfg.getServer().getProperty("node.id");
-      if (!iam.equalsIgnoreCase(header.getToNode())) {
-        try {
-          rsc = (Resource) Beans.instantiate(this.getClass().getClassLoader(),
-              ForwardResource.class.getName());
-        } catch (ClassNotFoundException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-        } catch (IOException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-        }
-        return rsc;
-      } else {
-
-        ResourceConf rc = cfg.findById(header.getRoutingId().getNumber());
-        if (rc == null)
-          return null;
-
-        try {
-          // strategy: instance-per-request
-          rsc = (Resource) Beans.instantiate(this.getClass().getClassLoader(),
-              rc.getClazz());
-          return rsc;
-        } catch (Exception e) {
-          logger.error("unable to create resource " + rc.getClazz());
-          return null;
-        }
-      }
+	return rf;
     }
-    
-    
-    ResourceConf rc = cfg.findById(header.getRoutingId().getNumber());
-    if (rc == null)
-            return null;
 
-    try {
-            // strategy: instance-per-request
-            rsc = (Resource) Beans.instantiate(this.getClass().getClassLoader(), rc.getClazz());
-            return rsc;
-    } catch (Exception e) {
-            logger.error("unable to create resource " + rc.getClazz());
-            return null;
+    private ResourceFactory() {
     }
-  }
+
+    /**
+     * Obtain a resource
+     * 
+     * @param route
+     * @return
+     * @throws
+     * @throws ClassNotFoundException
+     */
+    public Resource resourceInstance(Header header) {
+	Resource rsc = null;
+	// is the message for this server?
+	if (header.hasToNode() && header.getRoutingId().equals(Routing.DOCADD)) {
+	    String iam = cfg.getServer().getProperty("node.id");
+	    if (!iam.equalsIgnoreCase(header.getToNode())) {
+		try {
+		    rsc = (Resource) Beans.instantiate(this.getClass().getClassLoader(),
+			    ForwardResource.class.getName());
+		} catch (ClassNotFoundException e) {
+		    // TODO Auto-generated catch block
+		    e.printStackTrace();
+		} catch (IOException e) {
+		    // TODO Auto-generated catch block
+		    e.printStackTrace();
+		}
+		return rsc;
+	    } else {
+
+		ResourceConf rc = cfg.findById(header.getRoutingId().getNumber());
+		if (rc == null)
+		    return null;
+
+		try {
+		    // strategy: instance-per-request
+		    rsc = (Resource) Beans.instantiate(this.getClass().getClassLoader(),
+			    rc.getClazz());
+		    return rsc;
+		} catch (Exception e) {
+		    logger.error("unable to create resource " + rc.getClazz());
+		    return null;
+		}
+	    }
+	}
+
+	ResourceConf rc = cfg.findById(header.getRoutingId().getNumber());
+	if (rc == null)
+	    return null;
+
+	try {
+	    // strategy: instance-per-request
+	    rsc = (Resource) Beans.instantiate(this.getClass().getClassLoader(), rc.getClazz());
+	    return rsc;
+	} catch (Exception e) {
+	    logger.error("unable to create resource " + rc.getClazz());
+	    return null;
+	}
+    }
 }
