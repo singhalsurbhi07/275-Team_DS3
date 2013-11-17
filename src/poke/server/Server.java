@@ -72,7 +72,7 @@ public class Server {
     protected HeartbeatManager hbMgr;
     protected static Channel clientConnection = null;
     public static Map<String, Channel> reqChannel = new HashMap<String, Channel>();
-    
+
     public static ArrayList activeNodes = new ArrayList();
 
     public static void setClientConnection(Channel connection) {
@@ -264,6 +264,16 @@ public class Server {
 		    nn.getMgmtPort());
 	    HeartbeatConnector.getInstance().addConnectToThisNode(node);
 	    ForwardQWorker.getInstance().addNeighbouringNode(node);
+	}
+	if (conf.getExternal() != null) {
+	    for (NodeDesc nn : conf.getExternal().getExternalNodes().values()) {
+
+		HeartbeatData node = new HeartbeatData(nn.getNodeId(), nn.getHost(), nn.getPort(),
+			nn.getMgmtPort());
+		HeartbeatConnector.getInstance().addConnectToThisNode(node);
+		ForwardQWorker.getInstance().addNeighbouringNode(node);
+
+	    }
 	}
 	hbMgr.start();
 	// ForwardQWorker.getInstance().run();

@@ -22,63 +22,71 @@ import poke.monitor.MonitorListener;
 import poke.server.Server;
 
 public class HeartbeatListener implements MonitorListener {
-	protected static Logger logger = LoggerFactory.getLogger("management");
+    protected static Logger logger = LoggerFactory.getLogger("management");
 
-	private HeartbeatData data;
+    private HeartbeatData data;
 
-	public HeartbeatListener(HeartbeatData data) {
-		this.data = data;
-	}
+    public HeartbeatListener(HeartbeatData data) {
+	this.data = data;
+    }
 
-	public HeartbeatData getData() {
-		return data;
-	}
+    public HeartbeatData getData() {
+	return data;
+    }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see poke.monitor.MonitorListener#getListenerID()
-	 */
-	@Override
-	public String getListenerID() {
-		return data.getNodeId();
-	}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see poke.monitor.MonitorListener#getListenerID()
+     */
+    @Override
+    public String getListenerID() {
+	return data.getNodeId();
+    }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see poke.monitor.MonitorListener#onMessage(eye.Comm.Management)
-	 */
-	@Override
-	public void onMessage(eye.Comm.Management msg) {
-		if (logger.isDebugEnabled())
-			logger.debug(msg.getBeat().getNodeId());
+    /*
+     * (non-Javadoc)
+     * 
+     * @see poke.monitor.MonitorListener#onMessage(eye.Comm.Management)
+     */
+    @Override
+    public void onMessage(eye.Comm.Management msg) {
+	if (logger.isDebugEnabled())
+	    logger.debug(msg.getBeat().getNodeId());
 
-		if (msg.hasGraph()) {
-			logger.info("Received graph responses");
-		} else if (msg.hasBeat() && msg.getBeat().getNodeId().equals(data.getNodeId())) {
-			logger.info("Received HB response from " + msg.getBeat().getNodeId());
-			data.setLastBeat(System.currentTimeMillis());
-			
-			int activePort = Server.getConf().getNearest().getNode(msg.getBeat().getNodeId()).getPort();
-			logger.info("Active host of node id : " + msg.getBeat().getNodeId() + " is " + activePort);
-			if(!Server.activeNodes.contains(activePort))
-			{
-			Server.activeNodes.add(activePort);
-			}
-			
-		} else
-			logger.error("Received hbMgr from on wrong channel or unknown host: " + msg.getBeat().getNodeId());
-	}
+	if (msg.hasGraph()) {
+	    logger.info("Received graph responses");
+	} else if (msg.hasBeat() && msg.getBeat().getNodeId().equals(data.getNodeId())) {
+	    logger.info("Received HB response from " + msg.getBeat().getNodeId());
+	    data.setLastBeat(System.currentTimeMillis());
+	    int activePort;
+	    if (Server.getConf().getNearest().getNode(msg.getBeat().getNodeId()) != null) {
+		activePort = Server.getConf().getNearest().getNode(msg.getBeat().getNodeId())
+			.getPort();
+	    } else {
+		activePort = Server.getConf().getExternal().getNode(msg.getBeat().getNodeId())
+			.getPort();
+	    }
+	    logger.info("Active host of node id : " + msg.getBeat().getNodeId() + " is "
+		    + activePort);
+	    if (!Server.activeNodes.contains(activePort))
+	    {
+		Server.activeNodes.add(activePort);
+	    }
 
-	@Override
-	public void connectionFailed() {
-		// note a closed management port is likely to indicate the primary port
-		// has failed as well
-	}
+	} else
+	    logger.error("Received hbMgr from on wrong channel or unknown host: "
+		    + msg.getBeat().getNodeId());
+    }
 
-	@Override
-	public void connectionReady() {
-		// do nothing at the moment
-	}
+    @Override
+    public void connectionFailed() {
+	// note a closed management port is likely to indicate the primary port
+	// has failed as well
+    }
+
+    @Override
+    public void connectionReady() {
+	// do nothing at the moment
+    }
 }
