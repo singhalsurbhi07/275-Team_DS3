@@ -235,16 +235,24 @@ public class ForwardResource implements Resource {
 	    return nn.getNodeId();
 	} else {
 	    System.out.println("FowardResource: if path!=null");
+	    String nextNode;
 	    // if this server has already seen this message return null
-	    for (RoutingPath rp : paths) {
-		for (NodeDesc nd : neighboursList) {
-		    System.out.println("FowardResource: if path!=null"
-			    + nd.getNodeId());
-		    if (!nd.getNodeId().equalsIgnoreCase(rp.getNode()))
-			System.out.println("FowardResource: if path!=null"
-				+ nd.getNodeId());
-		    return nd.getNodeId();
+	    for (NodeDesc eachNeighbour : neighboursList) {
+		int i = 0;
+		boolean found = true;
+		while (i < paths.size()) {
+		    if (paths.get(i).getNode().equals(eachNeighbour.getNodeId())) {
+			found = false;
+			break;
+		    }
+
+		    i++;
+
 		}
+		if (found) {
+		    nextNode = eachNeighbour.getNodeId();
+		}
+
 	    }
 	}
 
