@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import poke.monitor.MonitorListener;
+import poke.server.Server;
 
 public class HeartbeatListener implements MonitorListener {
 	protected static Logger logger = LoggerFactory.getLogger("management");
@@ -58,6 +59,14 @@ public class HeartbeatListener implements MonitorListener {
 		} else if (msg.hasBeat() && msg.getBeat().getNodeId().equals(data.getNodeId())) {
 			logger.info("Received HB response from " + msg.getBeat().getNodeId());
 			data.setLastBeat(System.currentTimeMillis());
+			
+			int activePort = Server.getConf().getNearest().getNode(msg.getBeat().getNodeId()).getPort();
+			logger.info("Active host of node id : " + msg.getBeat().getNodeId() + " is " + activePort);
+			if(!Server.activeNodes.contains(activePort))
+			{
+			Server.activeNodes.add(activePort);
+			}
+			
 		} else
 			logger.error("Received hbMgr from on wrong channel or unknown host: " + msg.getBeat().getNodeId());
 	}

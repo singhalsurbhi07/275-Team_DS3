@@ -19,6 +19,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -71,6 +72,8 @@ public class Server {
     protected HeartbeatManager hbMgr;
     protected static Channel clientConnection = null;
     public static Map<String, Channel> reqChannel = new HashMap<String, Channel>();
+    
+    public static ArrayList activeNodes = new ArrayList();
 
     public static void setClientConnection(Channel connection) {
 	clientConnection = connection;

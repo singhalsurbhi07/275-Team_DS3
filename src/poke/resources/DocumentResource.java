@@ -25,6 +25,7 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import poke.client.ClientConnection;
 import poke.server.Server;
 import poke.server.resources.Resource;
 import poke.server.storage.ServerManagementUtil;
@@ -43,6 +44,7 @@ public class DocumentResource implements Resource {
     public static final String sUser = "jdbc.user";
     public static final String sPass = "jdbc.password";
 
+    private int count=0;
     public DocumentResource() {
     }
 
@@ -84,6 +86,8 @@ public class DocumentResource implements Resource {
 
     @Override
     public Response process(Request request) {
+    	ClientConnection.count++;
+    	logger.info("Count of replication is : "+count);
 	Properties p = System.getProperties();
 	String key = "user.home";
 	String userDir = (String) p.get(key);
@@ -163,7 +167,7 @@ public class DocumentResource implements Resource {
 	logger.info("document ********************* : "
 		+ request.getBody().getDoc().getId());
 
-	if (request.getHeader().getRoutingId().equals(Routing.STATS)) {
+	if (request.getHeader().getRoutingId().equals(Routing.DOCADD)) {
 	    return createResponse(request);
 	}
 

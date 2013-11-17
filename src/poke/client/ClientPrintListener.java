@@ -108,7 +108,7 @@ public class ClientPrintListener implements ClientListener {
 		 * .println("The file content is ------------------------->" +
 		 * fileContent);
 		 */
-	    } else if (msg.getHeader().getRoutingId() == eye.Comm.Header.Routing.STATS) {
+	    } else if (msg.getHeader().getRoutingId() == eye.Comm.Header.Routing.DOCADD){
 		System.out.println(msg.getBody().getStats().getDocName()
 			+ " uploaded");
 	    } else if (msg.getHeader().getRoutingId() == eye.Comm.Header.Routing.STATS) {

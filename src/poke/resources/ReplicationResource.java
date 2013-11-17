@@ -65,37 +65,48 @@ public class ReplicationResource implements Resource {
     }
 
     private Request createRequest(Request request, String NodeId) {
-	/*
+	
+    	Request newRequest = null;
+    	/*
 	 * RoutingPath rp = RoutingPath.newBuilder()
 	 * .setNode(Server.getConf().getServer().getProperty("node.id"))
-	 * .setTime(System.currentTimeMillis()).build();
+	 * .setTime(System.currentTim    	if(request.getHeader().getOriginator().equals(iam))
+eMillis()).build();
 	 * 
 	 * System.out.println("Forward Resource Adding Route Path");
 	 * System.out.println(rp);
 	 */
-
+    	String toNode = request.getHeader().getToNode();
+    	String replicationOriginator;
+    	if (NodeId.equals("zero"))
+    		replicationOriginator=toNode;
+    	else
+    		replicationOriginator=NodeId;
+    		
 	Header newHeader = Header
 		.newBuilder(request.getHeader())
 		.setTime(System.currentTimeMillis())
-		.setRoutingId(eye.Comm.Header.Routing.DOCADD)
-		.setToNode(NodeId)
+		.setToNode(NodeId).setOriginator(replicationOriginator)
 		.build();
 
-	Request newRequest = Request.newBuilder(request).setHeader(newHeader)
+	 newRequest = Request.newBuilder(request).setHeader(newHeader)
 		.build();
-
+    			
 	/*
 	 * for (RoutingPath rp1 : newHeader.getPathList()) {
 	 * System.out.println("added pathlist"); System.out.println(rp1); }
 	 */
 
-	return newRequest;
+	
+    			
+    	return newRequest;
     }
 
     private Response createResponse(Request request) {
 
 	// fb.setTag(request.getBody().getFinger().getTag());
-	Header fb = Header
+	
+    	Header fb = Header
 		.newBuilder(request.getHeader())
 		.setReplyCode(ReplyStatus.FAILURE)
 		.setReplyMsg(
@@ -142,7 +153,11 @@ public class ReplicationResource implements Resource {
 	if (!(res.getHeader().getReplyCode().equals(ReplyStatus.FAILURE))) {
 	    System.out.println("((((((((((((Respone in Replication  Resource)))))))))))))"
 		    + res.getHeader().getReplyCode());
-
+	    logger.info("originator and to node id : " + request.getHeader().getOriginator()+" " +request.getHeader().getToNode());
+	    
+	    if(request.getHeader().getOriginator().equals("zero"))
+		{
+	    	
 	    for (int i = 0; i < neighboursList.size(); i++)
 	    {
 		nextNode = neighboursList.get(i).getNodeId();
@@ -152,14 +167,18 @@ public class ReplicationResource implements Resource {
 		if (nextNode != null) {
 		    msg = createRequest(request, nextNode);
 		} else {
-		    msg = createResponse(request);
+		   // msg = createResponse(request);
 		}
+		String iam = Server.getConf().getServer().getProperty("node.id");
+
+    	
 		ForwardedMessage fwdMessage = new ForwardedMessage(nextNode, msg);
 		ForwardQ.enqueueRequest(fwdMessage);
+    			}
 	    }
 	}
 
-	return res;
+	return null;
 
 	/**
 	 * Find the nearest node that has not received the request.

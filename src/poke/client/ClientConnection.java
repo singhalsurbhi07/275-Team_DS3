@@ -58,6 +58,7 @@ public class ClientConnection {
     private OutboundWorker worker;
     public static final int ID_LENGTH = 6;
 
+    public static int count=0;
     public String generateUniqueId() {
 	return RandomStringUtils.randomAlphanumeric(ID_LENGTH);
     }
@@ -122,8 +123,8 @@ public class ClientConnection {
 	h.setTag(id);
 	// h.setTag("test finger");
 	h.setTime(System.currentTimeMillis());
-	// h.setRoutingId(eye.Comm.Header.Routing.DOCADD);
-	h.setRoutingId(eye.Comm.Header.Routing.STATS);
+	h.setRoutingId(eye.Comm.Header.Routing.DOCADD);
+	//h.setRoutingId(eye.Comm.Header.Routing.STATS);
 	h.setRemainingHopCount(4);
 	if (dest != null) {
 	    h.setToNode(dest);
@@ -178,7 +179,7 @@ public class ClientConnection {
     public void findFile(String fileName) {
     	String id = generateUniqueId();
 
-    	System.out.println("$$$$$$$$$$$$$$$$ INSIDE FIND FILE METHOD IN CC $$$$$$$$$$$$$$$$$$");
+    	System.out.println("$$$$$$$$$$$$$$$$ INSIDE RETRIEVE FILE METHOD IN CC $$$$$$$$$$$$$$$$$$");
 
     	Document.Builder docBuilder = Document.newBuilder();
     	docBuilder.setDocName(fileName);
@@ -188,7 +189,8 @@ public class ClientConnection {
 
     	Request.Builder requestBuilder = Request.newBuilder();
     	requestBuilder.setBody(payloadBuilder.build());
-    	
+    	// System.out.println("<<<<<<<<<<<<<<<<<<<<<"+retrievePayload.setDoc(retrieveDoc)+"<<<<<<<<<<<<<<<<<<<<<");
+
     	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
     	// requestHeader.setOriginator(host + ":" + port);
     	requestHeader.setOriginator(originator);
