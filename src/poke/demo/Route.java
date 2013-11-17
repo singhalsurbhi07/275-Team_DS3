@@ -93,6 +93,12 @@ public class Route {
 	    cc.removeFile(fileNameDel);
 	    break;
 	case 4:
+		System.out.print("Enter the file name to find the file --->");
+		String filefind = bufferRead.readLine();
+		System.out.println("READ THE FILE NAME");
+		cc.findFile(filefind);
+		break;
+	case 5:
 	    System.out.println("Exit");
 
 	}
@@ -121,7 +127,8 @@ public class Route {
 	    System.out.println("1. Upload File");
 	    System.out.println("2. Retrieve File");
 	    System.out.println("3. Remove File");
-	    System.out.println("4. Exit");
+	    System.out.println("4. Find File");
+	    System.out.println("5. Exit");
 	    System.out.println("Enter Choice");
 	    try {
 		BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
@@ -134,7 +141,7 @@ public class Route {
 	    {
 		e.printStackTrace();
 	    }
-	} while (choice < 4);
+	} while (choice < 5);
 
     }
 

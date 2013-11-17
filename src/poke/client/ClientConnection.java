@@ -174,6 +174,39 @@ public class ClientConnection {
 	    logger.warn("Unable to deliver message, queuing");
 	}
     }
+    
+    public void findFile(String fileName) {
+    	String id = generateUniqueId();
+
+    	System.out.println("$$$$$$$$$$$$$$$$ INSIDE RETRIEVE FILE METHOD IN CC $$$$$$$$$$$$$$$$$$");
+
+    	Document.Builder docBuilder = Document.newBuilder();
+    	docBuilder.setDocName(fileName);
+
+    	eye.Comm.Payload.Builder payloadBuilder = Payload.newBuilder();
+    	payloadBuilder.setDoc(docBuilder.build());
+
+    	Request.Builder requestBuilder = Request.newBuilder();
+    	requestBuilder.setBody(payloadBuilder.build());
+    	// System.out.println("<<<<<<<<<<<<<<<<<<<<<"+retrievePayload.setDoc(retrieveDoc)+"<<<<<<<<<<<<<<<<<<<<<");
+
+    	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
+    	// requestHeader.setOriginator(host + ":" + port);
+    	requestHeader.setOriginator(originator);
+    	requestHeader.setTag(id);
+    	requestHeader.setTime(System.currentTimeMillis());
+    	requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCQUERY);
+    	//requestHeader.setRemainingHopCount(4);
+    	requestBuilder.setHeader(requestHeader.build());
+
+    	eye.Comm.Request fileRequest = requestBuilder.build();
+    	try {
+    	    // enqueue message
+    	    outbound.put(fileRequest);
+    	} catch (InterruptedException e) {
+    	    logger.warn("Unable to deliver message, queuing");
+    	}
+        }
 
     public void removeFile(String fileName) {
 	String id = generateUniqueId();

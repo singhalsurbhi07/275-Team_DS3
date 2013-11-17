@@ -34,6 +34,7 @@ import com.google.protobuf.GeneratedMessage;
 
 import eye.Comm.Header;
 import eye.Comm.Header.ReplyStatus;
+import eye.Comm.Header.Routing;
 import eye.Comm.PayloadReply;
 import eye.Comm.Request;
 import eye.Comm.Response;
@@ -66,6 +67,19 @@ public class ForwardResource implements Resource {
     public void setCfg() {
 	// this.cfg = cfg;
 	this.cfg = Server.getConf();
+    }
+    
+    private String determineDocRetrieveNode(Request request){
+    	List<RoutingPath> rp=request.getHeader().getPathList();
+    	System.out.println("Inside determine doc retrieve node in FORWARd RESOURCE ==============");
+    	String current=Server.getConf().getServer().getProperty("node.id");
+    	//boolean found=false;
+    	int currentPosition = rp.indexOf(current);
+    	RoutingPath nextPath = rp.get(currentPosition + 1);
+    	String next = nextPath.getNode();
+    	System.out.println("The value of next node in determine doc retrieve node is ===============" + next);
+    	
+    	  	return next;
     }
 
     private Request createRequest(Request request) {
@@ -115,16 +129,27 @@ public class ForwardResource implements Resource {
     @Override
     public Response process(Request request) {
 	setCfg();
+	String nextNode;
 
 	System.out.println("In ForwardResource");
-	String nextNode = determineForwardNode(request);
+	System.out.println("THE REQUEST IN FORWARD RESOURCE BEFOR DOCFIND IS  ======================" + request);
+	if(request.getHeader().getRoutingId().equals(Routing.DOCFIND)){
+		
+		
+		
+		System.out.println("IN FORWARD RESOURCE INSIDE WHEN DOCFIND IS TRUE-----------------------");
+		
+		nextNode = determineDocRetrieveNode(request);
+	}else{
+		nextNode = determineForwardNode(request);
+	}
 
 	System.out.println("nextNode=" + nextNode);
 	System.out.println("hopcount"
 		+ request.getHeader().getRemainingHopCount());
 	GeneratedMessage msg = null;
 	ForwardedMessage fwdMessage = null;
-	if (nextNode != null && request.getHeader().getRemainingHopCount() > 0) {
+	if (nextNode != null) {
 	    msg = createRequest(request);
 	    fwdMessage = new ForwardedMessage(nextNode, msg);
 	} else {

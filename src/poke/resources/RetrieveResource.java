@@ -66,13 +66,17 @@ public class RetrieveResource implements Resource {
 
 		System.out.println("Retrieve Resource Adding Route Path");
 		System.out.println(rp);
-		int hopCount = (int) request.getHeader().getRemainingHopCount();
-		hopCount--;
+		//int hopCount = (int) request.getHeader().getRemainingHopCount();
+		//hopCount--;
 
-		Header newHeader = Header.newBuilder(request.getHeader())
+		/*Header newHeader = Header.newBuilder(request.getHeader())
 				.setTime(System.currentTimeMillis())
 				.setRemainingHopCount(hopCount).addPath(rp).build();
-
+*/
+		Header newHeader = Header.newBuilder(request.getHeader())
+				.setTime(System.currentTimeMillis())
+				.addPath(rp).build();
+		
 		Request newRequest = Request.newBuilder(request).setHeader(newHeader)
 				.build();
 

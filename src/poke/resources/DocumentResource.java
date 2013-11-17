@@ -93,8 +93,7 @@ public class DocumentResource implements Resource {
 	String currentID = Server.getConf().getServer().getProperty("node.id");
 	String namespace = request.getBody().getSpace().getName();
 
-	String serverDir = userDir + "/" + Server.getConf().getServer().getProperty("node.id")
-		+ "/" + namespace;
+	String serverDir = userDir + "/" + Server.getConf().getServer().getProperty("node.id");
 	File serverFolder = new File(serverDir);
 	if (!serverFolder.exists()) {
 	    if (serverFolder.mkdir()) {
@@ -103,24 +102,21 @@ public class DocumentResource implements Resource {
 		System.out.println("Directory already exist");
 	    }
 	}
-	String filePath = serverDir + "/" + request.getBody().getDoc().getDocName();
+	String namespaceDir = serverDir + "/" + namespace;
+	File namespaceFolder = new File(namespaceDir);
+	if (!namespaceFolder.exists()) {
+	    if (namespaceFolder.mkdir()) {
+		System.out.println("Directory is created!");
+	    } else {
+		System.out.println("Directory already exist");
+	    }
+	}
+	String filePath = namespaceDir + "/" + request.getBody().getDoc().getDocName();
 	System.out.println("FlePath in server***" + filePath);
 	String fileContent = request.getBody().getDoc().getChunkContent()
 		.toStringUtf8();
 	System.out.println("FleContent in server***" + fileContent);
 	File file = new File(filePath);
-
-	// try {
-	//
-	// if (file.createNewFile()) {
-	// System.out.println("File is created!");
-	// } else {
-	// System.out.println("File already exists.");
-	// }
-	//
-	// } catch (IOException e) {
-	// e.printStackTrace();
-	// }
 
 	boolean fileExists = false;
 	try {
