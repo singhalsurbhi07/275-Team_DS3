@@ -124,7 +124,7 @@ public class DocQueryResource implements Resource {
 
     private String determineForwardNode(Request request) {
 	System.out
-		.println("IN RETRIEVE RESOURCE ===============> determineForwardNode start");
+		.println("IN DOC QUERY RESOURCE ===============> determineForwardNode start");
 	List<RoutingPath> paths = request.getHeader().getPathList();
 	Collection<NodeDesc> neighboursList = cfg.getNearest()
 		.getNearestNodes().values();
@@ -140,12 +140,12 @@ public class DocQueryResource implements Resource {
 	    if (nd == null)
 		System.out.println("nodedesc is null");
 
-	    System.out.println("RETRIEVE Resource: if path==null"
+	    System.out.println("DOC QUERY Resource: if path==null"
 		    + nd.getNodeId());
 	    return nd.getNodeId();
 	} else {
 	    System.out
-		    .println("RETRIEVE Resource:determine nextnode if path!=null");
+		    .println("DOC QUERY Resource:determine nextnode if path!=null");
 	    // if this server has already seen this message return null
 
 	    for (NodeDesc nd : neighboursList) {
@@ -167,16 +167,16 @@ public class DocQueryResource implements Resource {
     @Override
     public Response process(Request request) {
 	Properties p = System.getProperties();
-	Document retrievedFile = null;
-	String fileToBeRetrieved = request.getBody().getDoc().getDocName();
+	Document FoundFile = null;
+	String fileToBeFound = request.getBody().getDoc().getDocName();
 	System.out
-		.println("The name of the file to be retrieved is ==============> "
-			+ fileToBeRetrieved);
+		.println("The name of the file to be found is ==============> "
+			+ fileToBeFound);
 
 	FileInfo fileInfo = ServerManagementUtil.getDatabaseStorage()
-		.findDocument(request, fileToBeRetrieved);
+		.findDocument(request, fileToBeFound);
 	Response response = null;
-	eye.Comm.PayloadReply.Builder retrievePayload = null;
+	eye.Comm.PayloadReply.Builder findPayload = null;
 	if (fileInfo != null) {
 	    System.out.println("DocQueryResource:fileinfo not null");
 
@@ -192,7 +192,8 @@ public class DocQueryResource implements Resource {
 	     */
 	    setCfg();
 	    if (cfg != null) {
-		if (request.getHeader().getIsExternal()) {
+		if (request.getHeader().getIsExternal() && cfg.getExternal()!=null) {
+			System.out.println("This is inside when an external node of value not null is found=========>");
 		    adjacentNode = determineExternalNode(request);
 		    System.out.println("DocQueryResource:adjacent node when is external=true :"
 			    + adjacentNode);
@@ -209,7 +210,7 @@ public class DocQueryResource implements Resource {
 			.println("------------------CFG IS NULL-------------------------");
 	    }
 	    System.out
-		    .println("nextNode in retrieve resource=================>"
+		    .println("nextNode in DOC QUERY resource=================>"
 			    + adjacentNode);
 	    GeneratedMessage msg = null;
 	    ForwardedMessage fwdMessage;
@@ -245,11 +246,12 @@ public class DocQueryResource implements Resource {
 	NodeDesc nd = cfg.getExternal().getExternalNodes().values()
 		.iterator().next();
 	if (nd == null) {
+		//String ExternalNodeFinder = determineForwardNode(request);
 	    System.out.println("nodedesc is null");
 	    return null;
 	}
 
-	System.out.println("RETRIEVE Resource: if path==null"
+	System.out.println("DOC QUERY Resource determine external node : if path==null"
 		+ nd.getNodeId());
 	return nd.getNodeId();
 

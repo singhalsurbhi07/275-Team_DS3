@@ -51,12 +51,12 @@ public class RetrieveResource implements Resource {
     }
 
     private Request createRequest(Request request) {
-	RoutingPath rp = RoutingPath.newBuilder()
-		.setNode(Server.getConf().getServer().getProperty("node.id"))
-		.setTime(System.currentTimeMillis()).build();
+	//RoutingPath rp = RoutingPath.newBuilder()
+		//.setNode(Server.getConf().getServer().getProperty("node.id"))
+		//.setTime(System.currentTimeMillis()).build();
 
-	System.out.println("Retrieve Resource Adding Route Path");
-	System.out.println(rp);
+//	System.out.println("Retrieve Resource Adding Route Path");
+//	System.out.println(rp);
 	// int hopCount = (int) request.getHeader().getRemainingHopCount();
 	// hopCount--;
 
@@ -65,9 +65,10 @@ public class RetrieveResource implements Resource {
 	 * .setTime(System.currentTimeMillis())
 	 * .setRemainingHopCount(hopCount).addPath(rp).build();
 	 */
+	
 	Header newHeader = Header.newBuilder(request.getHeader())
 		.setTime(System.currentTimeMillis())
-		.addPath(rp).build();
+		.build();
 
 	Request newRequest = Request.newBuilder(request).setHeader(newHeader)
 		.build();
@@ -137,45 +138,7 @@ public class RetrieveResource implements Resource {
 	}
 	return null;
 
-	// System.out
-	// .println("IN RETRIEVE RESOURCE ===============> determineForwardNode start");
-	// List<RoutingPath> paths = request.getHeader().getPathList();
-	// Collection<NodeDesc> neighboursList = cfg.getNearest()
-	// .getNearestNodes().values();
-	//
-	// // System.out.println("IN determineForwardNode1");
-	// if (paths == null || paths.size() == 0) {
-	// System.out.println("paths==null, picking first nearest node");
-	// System.out.println("NearestNode:"
-	// + cfg.getNearest().getNearestNodes().values());
-	// // pick first nearest
-	// NodeDesc nd = cfg.getNearest().getNearestNodes().values()
-	// .iterator().next();
-	// if (nd == null)
-	// System.out.println("nodedesc is null");
-	//
-	// System.out.println("RETRIEVE Resource: if path==null"
-	// + nd.getNodeId());
-	// return nd.getNodeId();
-	// } else {
-	// System.out
-	// .println("RETRIEVE Resource:determine nextnode if path!=null");
-	// // if this server has already seen this message return null
-	//
-	// for (NodeDesc nd : neighboursList) {
-	// boolean found = true;
-	// for (RoutingPath rp : paths) {
-	// if (rp.getNode().equalsIgnoreCase(nd.getNodeId())) {
-	// found = false;
-	// break;
-	// }
-	// }
-	// if (found) {
-	// return nd.getNodeId();
-	// }
-	// }
-	// }
-	// return null;
+	
     }
 
     @Override
@@ -241,7 +204,7 @@ public class RetrieveResource implements Resource {
 	    GeneratedMessage msg = null;
 	    ForwardedMessage fwdMessage;
 	    if (adjacentNode != null) {
-		msg = createRequest(request);
+		msg = request;
 		// return null;
 	    } else {
 		// msg = createResponseFailure(request);

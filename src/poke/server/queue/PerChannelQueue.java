@@ -282,34 +282,10 @@ public class PerChannelQueue implements ChannelQueue {
 				+ targetNode);
 			String currentNode = Server.getConf().getServer()
 				.getProperty("node.id");
+			System.out.println("PerChannelQ: current node :" + currentNode);
+			
 			if (!targetNode.equalsIgnoreCase(currentNode)) {
-			    // System.out.println("PerChannel Q:Current Node" +
-			    // currentNode);
-			    //
-			    // List<RoutingPath> rp = ((Response)
-			    // msg).getHeader().getPathList();
-			    //
-			    // RoutingPath r = null;
-			    // for (int i = rp.size() - 1; i > 0; i--) {
-			    // if
-			    // (rp.get(i).getNode().equalsIgnoreCase(currentNode))
-			    // {
-			    // r = rp.get(i - 1);
-			    // break;
-			    // }
-			    // }
-			    // if (r != null) {
-			    // String dest = r.getNode();
-			    // System.out.println("response destination.." +
-			    // dest);
-			    // ForwardedMessage fm = new ForwardedMessage(dest,
-			    // res);
-			    // ForwardQ.enqueueResponse(fm);
-			    // } else {
-			    //
-			    // System.out.println("No node to forward to");
-			    // }
-
+			    System.out.println("Target Nod not equal to current node ");
 			    Channel nextChannel = Server.reqChannel.get(res
 				    .getHeader().getTag());
 			    if (nextChannel == null) {
@@ -324,42 +300,45 @@ public class PerChannelQueue implements ChannelQueue {
 
 			    }
 			} else {
+				System.out.println("The response inside per channel queue" + res);
 			    if (res.getHeader().getRoutingId().equals(Routing.DOCQUERY)) {
 
-				if (res.getHeader().getReplyCode().equals(ReplyStatus.FAILURE)) {
-				    Header fb = Header.newBuilder().setOriginator(Server.getConf()
-					    .getServer().getProperty("node.id"))
-					    .setTag(res.getHeader().getTag())
-					    .setIsExternal(true).setRemainingHopCount(3).build();
-
-				    Document d = Document.newBuilder()
-					    .setDocName(res.getBody().getStats().getDocName())
-					    .build();
-
-				    Payload pb = Payload.newBuilder().setDoc(d).build();
-
-				    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
-					    .build();
-				    enqueueRequest(newReq);
-
-				} else {
-				    Header fb = Header.newBuilder(res.getHeader())
-					    .setOriginator(Server.getConf()
+					if (res.getHeader().getReplyCode().equals(ReplyStatus.FAILURE)) {
+					    Header fb = Header.newBuilder().setOriginator(Server.getConf()
 						    .getServer().getProperty("node.id"))
-					    .setToNode(res.getHeader().getOriginator())
-					    .setRoutingId(Routing.DOCFIND)
-					    .build();
-				    Document d = Document.newBuilder()
-					    .setDocName(res.getBody().getStats().getDocName())
-					    .build();
-
-				    Payload pb = Payload.newBuilder().setDoc(d).build();
-
-				    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
-					    .build();
-				    enqueueRequest(newReq);
-
-				}
+						    .setTag(res.getHeader().getTag())
+						    .setIsExternal(true).setRemainingHopCount(3).setRoutingId(Routing.DOCQUERY).build();
+	
+					    Document d = Document.newBuilder()
+						    .setDocName(res.getBody().getStats().getDocName())
+						    .build();
+	
+					    Payload pb = Payload.newBuilder().setDoc(d).build();
+	
+					    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
+						    .build();
+					    
+					    System.out.println("The request in per channel queue, for docquery failure..." + newReq);
+					    enqueueRequest(newReq);
+	
+					} else {
+					    Header fb = Header.newBuilder(res.getHeader())
+						    .setOriginator(Server.getConf()
+							    .getServer().getProperty("node.id"))
+						    .setToNode(res.getHeader().getOriginator())
+						    .setRoutingId(Routing.DOCFIND)
+						    .build();
+					    Document d = Document.newBuilder()
+						    .setDocName(res.getBody().getStats().getDocName())
+						    .build();
+	
+					    Payload pb = Payload.newBuilder().setDoc(d).build();
+	
+					    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
+						    .build();
+					    enqueueRequest(newReq);
+	
+					}
 
 			    } else {
 				Channel clientCh = Server.getClientConnection();
