@@ -208,6 +208,7 @@ public class ForwardResource implements Resource {
 
 	    int neighboursCount = neighboursList.size();
 	    System.out.println("ForwardResource neighbours c ount:" + neighboursCount);
+	   
 	    NodeDesc nn = null;
 	   
 	    for (NodeDesc nd : cfg.getNearest().getNearestNodes().values()) {

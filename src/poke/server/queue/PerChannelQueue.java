@@ -16,6 +16,8 @@
 package poke.server.queue;
 
 import java.lang.Thread.State;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 
@@ -255,24 +257,39 @@ public class PerChannelQueue implements ChannelQueue {
 		    // process request and enqueue response
 		    if (msg instanceof Request) {
 			Request req = ((Request) msg);
+			System.out.println("The contents inside path list in per channel queue is " + req.getHeader().getPathList().toString());
+			List<RoutingPath> rp = req.getHeader().getPathList();
+		    int pathCount = rp.size();
 			if (req.getHeader().getRoutingId().equals(Routing.DOCQUERY)
-				&& req.getHeader().getPathList() != null) {
+				&& pathCount!=0 && req.getHeader().getIsExternal() ) {
 			    System.out
 				    .println("PerChannelQ: req for DocQuery and Pathlist is not null");
-			    List<RoutingPath> rp = req.getHeader().getPathList();
-			    int pathCount = rp.size();
+			   
+			    System.out.println("The path count inside perchannel queue is " + pathCount);
 			    RoutingPath lastrp = rp.get(pathCount - 1);
 			    String lastrpNode = lastrp.getNode();
 			    System.out.println("PerChannelQ: lastrpNode=" + lastrpNode);
-
-			    List<NodeDesc> externalnodes = (List<NodeDesc>) Server.getConf()
-				    .getExternal().getExternalNodes().values();
-			    List<String> rpNodes = null;
-			    for (NodeDesc eachExternalNode : externalnodes) {
-				rpNodes.add(eachExternalNode.getNodeId());
+			    if(Server.getConf().getExternal() == null){
+			    	System.out.println("Server.getConf().getExternal() is null");
+			    
 			    }
 
-			    if (req.getHeader().getIsExternal() && rpNodes.contains(lastrpNode)) {
+			    Collection<NodeDesc> externalnodes =  Server.getConf()
+				    .getExternal().getExternalNodes().values();
+			    if(externalnodes!=null){
+			    	System.out.println("The external nodes are not null");
+			    }
+			    
+			    else{
+			    	System.out.println("External nodes are null");
+			    }
+			    List<String> rpNodes = new ArrayList<String>();
+			    for (NodeDesc eachExternalNode : externalnodes) {
+			    	System.out.println("Per channel Q: each external node id is " + eachExternalNode.getNodeId());
+			    	rpNodes.add(eachExternalNode.getNodeId());
+			    }
+
+			    if ( rpNodes.contains(lastrpNode)) {
 				System.out
 					.println("PerChannelQ: if is external is true and lastrpnode is external node");
 
