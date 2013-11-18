@@ -16,6 +16,7 @@
 package poke.server.queue;
 
 import java.lang.Thread.State;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 
 import org.jboss.netty.channel.Channel;
@@ -25,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import poke.server.Server;
+import poke.server.conf.NodeDesc;
 import poke.server.resources.Resource;
 import poke.server.resources.ResourceFactory;
 import poke.server.resources.ResourceUtil;
@@ -38,6 +40,7 @@ import eye.Comm.Header.Routing;
 import eye.Comm.Payload;
 import eye.Comm.Request;
 import eye.Comm.Response;
+import eye.Comm.RoutingPath;
 
 /**
  * A server queue exists for each connection (channel). A per-channel queue
@@ -231,7 +234,7 @@ public class PerChannelQueue implements ChannelQueue {
 			"connection worker detected null queue");
 	}
 
-	@SuppressWarnings("unused")
+	@SuppressWarnings({ "unused", "null" })
 	@Override
 	public void run() {
 	    Channel conn = sq.channel;
@@ -252,7 +255,35 @@ public class PerChannelQueue implements ChannelQueue {
 		    // process request and enqueue response
 		    if (msg instanceof Request) {
 			Request req = ((Request) msg);
+			if (req.getHeader().getRoutingId().equals(Routing.DOCQUERY)
+				&& req.getHeader().getPathList() != null) {
+			    System.out
+				    .println("PerChannelQ: req for DocQuery and Pathlist is not null");
+			    List<RoutingPath> rp = req.getHeader().getPathList();
+			    int pathCount = rp.size();
+			    RoutingPath lastrp = rp.get(pathCount - 1);
+			    String lastrpNode = lastrp.getNode();
+			    System.out.println("PerChannelQ: lastrpNode=" + lastrpNode);
 
+			    List<NodeDesc> externalnodes = (List<NodeDesc>) Server.getConf()
+				    .getExternal().getExternalNodes().values();
+			    List<String> rpNodes = null;
+			    for (NodeDesc eachExternalNode : externalnodes) {
+				rpNodes.add(eachExternalNode.getNodeId());
+			    }
+
+			    if (req.getHeader().getIsExternal() && rpNodes.contains(lastrpNode)) {
+				System.out
+					.println("PerChannelQ: if is external is true and lastrpnode is external node");
+
+				Header head = Header.newBuilder(req.getHeader())
+					.setIsExternal(false).build();
+				Payload pd = Payload.newBuilder(req.getBody()).build();
+				Request newReq = Request.newBuilder().setHeader(head).setBody(pd)
+					.build();
+				req = newReq;
+			    }
+			}
 			// do we need to route the request?
 			Resource rsc = ResourceFactory.getInstance()
 				.resourceInstance(req.getHeader());
@@ -283,7 +314,7 @@ public class PerChannelQueue implements ChannelQueue {
 			String currentNode = Server.getConf().getServer()
 				.getProperty("node.id");
 			System.out.println("PerChannelQ: current node :" + currentNode);
-			
+
 			if (!targetNode.equalsIgnoreCase(currentNode)) {
 			    System.out.println("Target Nod not equal to current node ");
 			    Channel nextChannel = Server.reqChannel.get(res
@@ -300,45 +331,48 @@ public class PerChannelQueue implements ChannelQueue {
 
 			    }
 			} else {
-				System.out.println("The response inside per channel queue" + res);
+			    System.out.println("The response inside per channel queue" + res);
 			    if (res.getHeader().getRoutingId().equals(Routing.DOCQUERY)) {
 
-					if (res.getHeader().getReplyCode().equals(ReplyStatus.FAILURE)) {
-					    Header fb = Header.newBuilder().setOriginator(Server.getConf()
+				if (res.getHeader().getReplyCode().equals(ReplyStatus.FAILURE)) {
+				    Header fb = Header.newBuilder().setOriginator(Server.getConf()
+					    .getServer().getProperty("node.id"))
+					    .setTag(res.getHeader().getTag())
+					    .setIsExternal(true).setRemainingHopCount(3)
+					    .setRoutingId(Routing.DOCQUERY).build();
+
+				    Document d = Document.newBuilder()
+					    .setDocName(res.getBody().getStats().getDocName())
+					    .build();
+
+				    Payload pb = Payload.newBuilder().setDoc(d).build();
+
+				    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
+					    .build();
+
+				    System.out
+					    .println("The request in per channel queue, for docquery failure..."
+						    + newReq);
+				    enqueueRequest(newReq);
+
+				} else {
+				    Header fb = Header.newBuilder(res.getHeader())
+					    .setOriginator(Server.getConf()
 						    .getServer().getProperty("node.id"))
-						    .setTag(res.getHeader().getTag())
-						    .setIsExternal(true).setRemainingHopCount(3).setRoutingId(Routing.DOCQUERY).build();
-	
-					    Document d = Document.newBuilder()
-						    .setDocName(res.getBody().getStats().getDocName())
-						    .build();
-	
-					    Payload pb = Payload.newBuilder().setDoc(d).build();
-	
-					    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
-						    .build();
-					    
-					    System.out.println("The request in per channel queue, for docquery failure..." + newReq);
-					    enqueueRequest(newReq);
-	
-					} else {
-					    Header fb = Header.newBuilder(res.getHeader())
-						    .setOriginator(Server.getConf()
-							    .getServer().getProperty("node.id"))
-						    .setToNode(res.getHeader().getOriginator())
-						    .setRoutingId(Routing.DOCFIND)
-						    .build();
-					    Document d = Document.newBuilder()
-						    .setDocName(res.getBody().getStats().getDocName())
-						    .build();
-	
-					    Payload pb = Payload.newBuilder().setDoc(d).build();
-	
-					    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
-						    .build();
-					    enqueueRequest(newReq);
-	
-					}
+					    .setToNode(res.getHeader().getOriginator())
+					    .setRoutingId(Routing.DOCFIND)
+					    .build();
+				    Document d = Document.newBuilder()
+					    .setDocName(res.getBody().getStats().getDocName())
+					    .build();
+
+				    Payload pb = Payload.newBuilder().setDoc(d).build();
+
+				    Request newReq = Request.newBuilder().setBody(pb).setHeader(fb)
+					    .build();
+				    enqueueRequest(newReq);
+
+				}
 
 			    } else {
 				Channel clientCh = Server.getClientConnection();
