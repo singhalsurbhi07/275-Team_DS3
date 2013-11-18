@@ -18,6 +18,7 @@ package poke.server.routing;
 import java.util.Collection;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.slf4j.Logger;
@@ -146,11 +147,14 @@ public class ForwardResource implements Resource {
 
 	System.out.println("nextNode=" + nextNode);
 	
-	int activePort = Server.getConf().getNearest().getNode(nextNode).getPort();
-	if(Server.activeNodes.contains(activePort) )
+	//int activePort = Server.getConf().getNearest().getNode(nextNode).getPort();
+	if(nextNode!=null )
+	{
+	if(Server.activeNodes.contains(nextNode))
 		logger.info(nextNode + " is connected!!!");
 	else
 		logger.info(nextNode + " is not connected!!!");
+	}
 	
 	System.out.println("hopcount"
 		+ request.getHeader().getRemainingHopCount());
@@ -160,12 +164,14 @@ public class ForwardResource implements Resource {
 	    msg = createRequest(request);
 	    fwdMessage = new ForwardedMessage(nextNode, msg);
 	} else {
-	    msg = createResponse(request);
+	    /*msg = createResponse(request);
 	    int rpCount = request.getHeader().getPathCount();
 
+	    
 	    String next = request.getHeader().getPath(rpCount - 1).getNode();
 	    fwdMessage = new ForwardedMessage(next, msg);
-
+*/
+		return createResponse(request);
 	}
 	// ForwardedMessage fwdMessage = new ForwardedMessage(nextNode, msg);
 	ForwardQ.enqueueRequest(fwdMessage);
@@ -194,6 +200,7 @@ public class ForwardResource implements Resource {
 	    if (eachNode.getNodeId().equalsIgnoreCase(request.getHeader().getToNode())) {
 		return request.getHeader().getToNode();
 	    }
+	    
 	}
 	System.out.println("IN determineForwardNode1");
 	if (paths == null || paths.size() == 0) {
@@ -201,45 +208,20 @@ public class ForwardResource implements Resource {
 
 	    int neighboursCount = neighboursList.size();
 	    System.out.println("ForwardResource neighbours c ount:" + neighboursCount);
-	    Random randomno = new Random();
-	    int randomNeighbour = randomno.nextInt(neighboursCount);
-	    // Set<String,NodeDesc> nn = neighboursList1.entrySet();
-
-	    System.out.println("ForwardResource random no" + randomNeighbour);
 	    NodeDesc nn = null;
-	    if (randomNeighbour == 0) {
-		nn = cfg.getNearest().getNearestNodes().values()
-			.iterator().next();
-	    } else {
-		// pick first nearest
-		// NodeDesc nn = cfg.getNearest().getNearestNodes().values()
-		// .iterator().next();
-
-		// NodeDesc nd = neighboursList.get(randomNeighbour);
-		// System.out.println("treemap" + nd.getNodeId());
-		// NodeDesc it = neighboursList.iterator().next();
-		int i = 0;
-
-		for (NodeDesc nd : neighboursList) {
-		    if (i != 0) {
-			nn = nd;
-			break;
-		    } else {
-			i++;
-			System.out.println("i=" + i);
-		    }
-		}
+	   
+	    for (NodeDesc nd : cfg.getNearest().getNearestNodes().values()) {
+	    if(Server.activeNodes.contains(nd.getNodeId())&&nd!=null)	
+	    {
+	    	System.out
+		    .println("FowardResource: if path==null" + nd.getNodeId());
+	    return nd.getNodeId();
 	    }
-
-	    if (nn == null) {
-		nn = cfg.getNearest().getNearestNodes().values()
-			.iterator().next();
-		System.out.println("nodedesc is null");
+	    else
+	    	continue;
 	    }
-
-	    System.out
-		    .println("FowardResource: if path==null" + nn.getNodeId());
-	    return nn.getNodeId();
+	    
+	    
 	} else {
 	    System.out.println("FowardResource: if path!=null");
 	    String nextNode;
@@ -258,6 +240,11 @@ public class ForwardResource implements Resource {
 		}
 		if (found) {
 		    nextNode = eachNeighbour.getNodeId();
+		    if(Server.activeNodes.contains(nextNode))
+		    	return nextNode;
+		    else
+		    	continue;
+		    	
 		}
 
 	    }

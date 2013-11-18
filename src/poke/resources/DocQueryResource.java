@@ -135,14 +135,26 @@ public class DocQueryResource implements Resource {
 	    System.out.println("NearestNode:"
 		    + cfg.getNearest().getNearestNodes().values());
 	    // pick first nearest
-	    NodeDesc nd = cfg.getNearest().getNearestNodes().values()
+	   /* NodeDesc nd = cfg.getNearest().getNearestNodes().values()
 		    .iterator().next();
-	    if (nd == null)
+		    if (nd == null)
 		System.out.println("nodedesc is null");
 
 	    System.out.println("DOC QUERY Resource: if path==null"
 		    + nd.getNodeId());
-	    return nd.getNodeId();
+	    return nd.getNodeId();*/
+	    for (NodeDesc nd : cfg.getNearest().getNearestNodes().values()) {
+		    if(Server.activeNodes.contains(nd.getNodeId())&&nd!=null)	
+		    {
+		    	System.out
+			    .println("FowardResource: if path==null" + nd.getNodeId());
+		    return nd.getNodeId();
+		    }
+		    else
+		    	continue;
+		    }
+		    
+	    
 	} else {
 	    System.out
 		    .println("DOC QUERY Resource:determine nextnode if path!=null");
@@ -157,7 +169,11 @@ public class DocQueryResource implements Resource {
 		    }
 		}
 		if (found) {
-		    return nd.getNodeId();
+			if(Server.activeNodes.contains(nd.getNodeId()))
+		    	return nd.getNodeId();
+		    else
+		    	continue;
+		    //return nd.getNodeId();
 		}
 	    }
 	}

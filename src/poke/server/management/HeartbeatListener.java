@@ -69,9 +69,9 @@ public class HeartbeatListener implements MonitorListener {
 	    }
 	    logger.info("Active host of node id : " + msg.getBeat().getNodeId() + " is "
 		    + activePort);
-	    if (!Server.activeNodes.contains(activePort))
+	    if (!Server.activeNodes.contains(msg.getBeat().getNodeId()))
 	    {
-		Server.activeNodes.add(activePort);
+		Server.activeNodes.add(msg.getBeat().getNodeId());
 	    }
 
 	} else
