@@ -335,7 +335,7 @@ public class PerChannelQueue implements ChannelQueue {
 			if (!targetNode.equalsIgnoreCase(currentNode)) {
 			    System.out.println("Target Nod not equal to current node ");
 			    Channel nextChannel = Server.reqChannel.get(res
-				    .getHeader().getTag());
+				    .getHeader().getCorrelationId());
 			    if (nextChannel == null) {
 				System.out
 					.println("PerQChannel:InboundWorker; No channel found to forward the resource");
@@ -354,7 +354,7 @@ public class PerChannelQueue implements ChannelQueue {
 				if (res.getHeader().getReplyCode().equals(ReplyStatus.FAILURE)) {
 				    Header fb = Header.newBuilder().setOriginator(Server.getConf()
 					    .getServer().getProperty("node.id"))
-					    .setTag(res.getHeader().getTag())
+					    .setCorrelationId(res.getHeader().getCorrelationId())
 					    .setIsExternal(true).setRemainingHopCount(3)
 					    .setRoutingId(Routing.DOCQUERY).build();
 

@@ -78,7 +78,7 @@ public class ServerHandler extends SimpleChannelUpstreamHandler {
 			    Server.getConf().getServer().getProperty("node.id"))) {
 		Server.setClientConnection(channel);
 	    } else {
-		Server.reqChannel.put(((Request) req).getHeader().getTag(), channel);
+		Server.reqChannel.put(((Request) req).getHeader().getCorrelationId(), channel);
 	    }
 	}
 

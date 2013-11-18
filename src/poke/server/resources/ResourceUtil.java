@@ -70,15 +70,15 @@ public class ResourceUtil {
     public static Header buildHeaderFrom(Header reqHeader, ReplyStatus status,
 	    String statusMsg) {
 	return buildHeader(reqHeader.getRoutingId(), status, statusMsg,
-		reqHeader.getOriginator(), reqHeader.getTag());
+		reqHeader.getOriginator(), reqHeader.getCorrelationId());
     }
 
     public static Header buildHeader(Routing path, ReplyStatus status,
-	    String msg, String from, String tag) {
+	    String msg, String from, String CorrelationId) {
 	Header.Builder bldr = Header.newBuilder();
 	bldr.setOriginator(from);
 	bldr.setRoutingId(path);
-	bldr.setTag(tag);
+	bldr.setCorrelationId(CorrelationId);
 	bldr.setReplyCode(status);
 
 	if (msg != null)

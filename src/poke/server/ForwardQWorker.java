@@ -101,7 +101,7 @@ System.out.println("ForwardQWorker:pc is not null");
    }
    ch = pc.connect();
 } else if (req instanceof Response) {
-   ch = Server.reqChannel.get(((Response) req).getHeader().getTag());
+   ch = Server.reqChannel.get(((Response) req).getHeader().getCorrelationId());
 }
 
 if (ch != null && ch.isWritable()) {

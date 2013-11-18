@@ -120,7 +120,7 @@ public class ClientConnection {
 	eye.Comm.Header.Builder h = Header.newBuilder();
 	// String originator = host + ":" + port;
 	h.setOriginator(originator);
-	h.setTag(id);
+	h.setCorrelationId(id);
 	// h.setTag("test finger");
 	h.setTime(System.currentTimeMillis());
 	h.setRoutingId(eye.Comm.Header.Routing.DOCADD);
@@ -161,7 +161,7 @@ public class ClientConnection {
 	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
 	// requestHeader.setOriginator(host + ":" + port);
 	requestHeader.setOriginator(originator);
-	requestHeader.setTag(id);
+	requestHeader.setCorrelationId(id);
 	requestHeader.setTime(System.currentTimeMillis());
 	requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCFIND);
 	requestHeader.setRemainingHopCount(4);
@@ -194,7 +194,7 @@ public class ClientConnection {
     	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
     	// requestHeader.setOriginator(host + ":" + port);
     	requestHeader.setOriginator(originator);
-    	requestHeader.setTag(id);
+    	requestHeader.setCorrelationId(id);
     	requestHeader.setTime(System.currentTimeMillis());
     	requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCQUERY);
     	//requestHeader.setRemainingHopCount(4);
@@ -226,7 +226,7 @@ public class ClientConnection {
 	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
 	// requestHeader.setOriginator(host + ":" + port);
 	requestHeader.setOriginator(originator);
-	requestHeader.setTag(id);
+	requestHeader.setCorrelationId(id);
 	requestHeader.setTime(System.currentTimeMillis());
 	requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCREMOVE);
 	requestBuilder.setHeader(requestHeader.build());
