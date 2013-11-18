@@ -47,343 +47,324 @@ import eye.Comm.Request;
  * 
  */
 public class ClientConnection {
-    protected static Logger logger = LoggerFactory.getLogger("client");
-    private static String originator = "zero";
-    private String host;
-    private int port;
-    private ChannelFuture channel; // do not use directly call connect()!
-    private ClientBootstrap bootstrap;
-    ClientDecoderPipeline clientPipeline;
-    private LinkedBlockingDeque<com.google.protobuf.GeneratedMessage> outbound;
-    private OutboundWorker worker;
-    public static final int ID_LENGTH = 6;
+	protected static Logger logger = LoggerFactory.getLogger("client");
+	private static String originator = "zero";
+	private String host;
+	private int port;
+	private ChannelFuture channel; // do not use directly call connect()!
+	private ClientBootstrap bootstrap;
+	ClientDecoderPipeline clientPipeline;
+	private LinkedBlockingDeque<com.google.protobuf.GeneratedMessage> outbound;
+	private OutboundWorker worker;
+	public static final int ID_LENGTH = 6;
 
-    public static int count=0;
-    public String generateUniqueId() {
-	return RandomStringUtils.randomAlphanumeric(ID_LENGTH);
-    }
+	public static int count = 0;
 
-    protected ClientConnection(String host, int port) {
-	this.host = host;
-	this.port = port;
-
-	init();
-    }
-
-    /**
-     * release all resources
-     */
-    public void release() {
-	bootstrap.releaseExternalResources();
-    }
-
-    public static ClientConnection initConnection(String host, int port) {
-
-	ClientConnection rtn = new ClientConnection(host, port);
-	return rtn;
-    }
-
-    /**
-     * add an application-level listener to receive messages from the server (as
-     * in replies to requests).
-     * 
-     * @param listener
-     */
-    public void addListener(ClientListener listener) {
-	try {
-	    if (clientPipeline != null)
-		clientPipeline.addListener(listener);
-	} catch (Exception e) {
-	    logger.error("failed to add listener", e);
+	public String generateUniqueId() {
+		return RandomStringUtils.randomAlphanumeric(ID_LENGTH);
 	}
-    }
 
-    public void uploadFile(String namespace, String filePath, String dest) throws IOException {
-	String[] names = filePath.split("/");
-	int namesLength = names.length;
-	String fileName = names[namesLength - 1];
-	System.out.println("FileName =" + fileName);
-	long fileSize = new File(filePath).length();
-	System.out.println("The file size is =======>" + fileSize);
-	if (namespace == null) {
-	    namespace = "server" + originator;
+	protected ClientConnection(String host, int port) {
+		this.host = host;
+		this.port = port;
+
+		init();
 	}
-	String id = generateUniqueId();
 
-	Document d = Document.newBuilder().setDocName(fileName)
-		.setChunkContent(getFileAsByteString(filePath)).setDocSize(fileSize).build();
-	eye.Comm.Payload.Builder p = Payload.newBuilder();
-	p.setDoc(d);
-	NameSpace ns = NameSpace.newBuilder().setName(namespace).build();
-	p.setSpace(ns);
-
-	eye.Comm.Header.Builder h = Header.newBuilder();
-	// String originator = host + ":" + port;
-	h.setOriginator(originator);
-	h.setCorrelationId(id);
-	// h.setTag("test finger");
-	h.setTime(System.currentTimeMillis());
-	h.setRoutingId(eye.Comm.Header.Routing.DOCADD);
-	//h.setRoutingId(eye.Comm.Header.Routing.STATS);
-	h.setRemainingHopCount(4);
-	if (dest != null) {
-	    h.setToNode(dest);
-	}
-	Request r = Request.newBuilder().setHeader(h.build()).setBody(p.build())
-		.build();
-
-	eye.Comm.Request req = r;
-
-	try {
-	    // enqueue message
-	    outbound.put(req);
-	} catch (InterruptedException e) {
-	    logger.warn("Unable to deliver message, queuing");
-	}
-    }
-
-    // **********************inserted on nov 2**********************************
-    public void retrieveFile(String fileName) {
-	String id = generateUniqueId();
-
-	System.out.println("$$$$$$$$$$$$$$$$ INSIDE RETRIEVE FILE METHOD IN CC $$$$$$$$$$$$$$$$$$");
-
-	Document.Builder docBuilder = Document.newBuilder();
-	docBuilder.setDocName(fileName);
-
-	eye.Comm.Payload.Builder payloadBuilder = Payload.newBuilder();
-	payloadBuilder.setDoc(docBuilder.build());
-
-	Request.Builder requestBuilder = Request.newBuilder();
-	requestBuilder.setBody(payloadBuilder.build());
-	// System.out.println("<<<<<<<<<<<<<<<<<<<<<"+retrievePayload.setDoc(retrieveDoc)+"<<<<<<<<<<<<<<<<<<<<<");
-
-	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
-	// requestHeader.setOriginator(host + ":" + port);
-	requestHeader.setOriginator(originator);
-	requestHeader.setCorrelationId(id);
-	requestHeader.setTime(System.currentTimeMillis());
-	requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCFIND);
-	requestHeader.setRemainingHopCount(4);
-	requestBuilder.setHeader(requestHeader.build());
-
-	eye.Comm.Request fileRequest = requestBuilder.build();
-	try {
-	    // enqueue message
-	    outbound.put(fileRequest);
-	} catch (InterruptedException e) {
-	    logger.warn("Unable to deliver message, queuing");
-	}
-    }
-    
-    public void findFile(String fileName) {
-    	String id = generateUniqueId();
-
-    	System.out.println("$$$$$$$$$$$$$$$$ INSIDE RETRIEVE FILE METHOD IN CC $$$$$$$$$$$$$$$$$$");
-
-    	Document.Builder docBuilder = Document.newBuilder();
-    	docBuilder.setDocName(fileName);
-
-    	eye.Comm.Payload.Builder payloadBuilder = Payload.newBuilder();
-    	payloadBuilder.setDoc(docBuilder.build());
-
-    	Request.Builder requestBuilder = Request.newBuilder();
-    	requestBuilder.setBody(payloadBuilder.build());
-    	// System.out.println("<<<<<<<<<<<<<<<<<<<<<"+retrievePayload.setDoc(retrieveDoc)+"<<<<<<<<<<<<<<<<<<<<<");
-
-    	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
-    	// requestHeader.setOriginator(host + ":" + port);
-    	requestHeader.setOriginator(originator);
-    	requestHeader.setCorrelationId(id);
-    	requestHeader.setTime(System.currentTimeMillis());
-    	requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCQUERY);
-    	//requestHeader.setRemainingHopCount(4);
-    	requestBuilder.setHeader(requestHeader.build());
-
-    	eye.Comm.Request fileRequest = requestBuilder.build();
-    	try {
-    	    // enqueue message
-    	    outbound.put(fileRequest);
-    	} catch (InterruptedException e) {
-    	    logger.warn("Unable to deliver message, queuing");
-    	}
-        }
-
-    public void removeFile(String fileName) {
-	String id = generateUniqueId();
-	System.out.println("$$$$$$$$$$$$$$$$ INSIDE REMOVE FILE METHOD IN CC $$$$$$$$$$$$$$$$$$");
-
-	Document.Builder docBuilder = Document.newBuilder();
-	docBuilder.setDocName(fileName);
-
-	eye.Comm.Payload.Builder payloadBuilder = Payload.newBuilder();
-	payloadBuilder.setDoc(docBuilder.build());
-
-	Request.Builder requestBuilder = Request.newBuilder();
-	requestBuilder.setBody(payloadBuilder.build());
-	// System.out.println("RETRIEVERETRIEVERETRIEVERETRIEVERETRIEVERETRIEVE<<<<<<<<<<<<<<<<<<<<<"+retrievePayload.setDoc(retrieveDoc)+"<<<<<<<<<<<<<<<<<<<<<");
-
-	eye.Comm.Header.Builder requestHeader = Header.newBuilder();
-	// requestHeader.setOriginator(host + ":" + port);
-	requestHeader.setOriginator(originator);
-	requestHeader.setCorrelationId(id);
-	requestHeader.setTime(System.currentTimeMillis());
-	requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCREMOVE);
-	requestBuilder.setHeader(requestHeader.build());
-
-	/*
-	 * Request retrieveRequest =
-	 * Request.newBuilder().setHeader(retrieveHeader.build()).
-	 * setBody(retrievePayload.build()).build();
+	/**
+	 * release all resources
 	 */
-	// logger.info(">>>>>>>>>>>>>>>>>>>>>>>The retrieved Request is >>>>>>>>>>>>>>>>>>"
-	// + retrieveRequest);
-
-	eye.Comm.Request fileRequest = requestBuilder.build();
-	try {
-	    // enqueue message
-	    outbound.put(fileRequest);
-	} catch (InterruptedException e) {
-	    logger.warn("Unable to deliver message, queuing");
-	}
-    }
-
-    // ***************inserted till above line on nov
-    // 2********************************
-    public void poke(String tag, int num) throws IOException {
-	// data to send
-	Finger f = eye.Comm.Finger.newBuilder().setTag(tag).setNumber(num).build();
-
-	// payload containing data
-	eye.Comm.Payload.Builder p = Payload.newBuilder();
-	p.setFinger(f);
-
-	// header with routing info
-	eye.Comm.Header.Builder h = Header.newBuilder();
-	h.setOriginator("client");
-	h.setTag("test finger");
-	h.setTime(System.currentTimeMillis());
-	h.setRoutingId(eye.Comm.Header.Routing.FINGER);
-
-	Request r = Request.newBuilder().setHeader(h.build()).setBody(p.build())
-		.build();
-
-	eye.Comm.Request req = r;
-
-	try {
-	    // enqueue message
-	    outbound.put(req);
-	} catch (InterruptedException e) {
-	    logger.warn("Unable to deliver message, queuing");
-	}
-    }
-
-    public ByteString getFileAsByteString(String filePath) throws IOException {
-	FileInputStream input = new FileInputStream(filePath);
-
-	byte[] fileData = new byte[input.available()];
-
-	input.read(fileData);
-	input.close();
-	return ByteString.copyFrom(fileData);
-    }
-
-    private void init() {
-	// the queue to support client-side surging
-	outbound = new LinkedBlockingDeque<com.google.protobuf.GeneratedMessage>();
-
-	// Configure the client.
-	bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(
-		Executors.newCachedThreadPool(), Executors.newCachedThreadPool()));
-
-	bootstrap.setOption("connectTimeoutMillis", 10000);
-	bootstrap.setOption("tcpNoDelay", true);
-	bootstrap.setOption("keepAlive", true);
-
-	// Set up the pipeline factory.
-	clientPipeline = new ClientDecoderPipeline();
-	bootstrap.setPipelineFactory(clientPipeline);
-
-	// start outbound message processor
-	worker = new OutboundWorker(this);
-	worker.start();
-    }
-
-    /**
-     * create connection to remote server
-     * 
-     * @return
-     */
-    protected Channel connect() {
-	// Start the connection attempt.
-	if (channel == null) {
-	    // System.out.println("---> connecting");
-	    channel = bootstrap.connect(new InetSocketAddress(host, port));
-	    // cleanup on lost connection
+	public void release() {
+		bootstrap.releaseExternalResources();
 	}
 
-	// wait for the connection to establish
-	channel.awaitUninterruptibly();
+	public static ClientConnection initConnection(String host, int port) {
 
-	if (channel.isDone() && channel.isSuccess())
-	    return channel.getChannel();
-	else
-	    throw new RuntimeException("Not able to establish connection to server");
-    }
-
-    /**
-     * queues outgoing messages - this provides surge protection if the client
-     * creates large numbers of messages.
-     * 
-     * @author gash
-     * 
-     */
-    protected class OutboundWorker extends Thread {
-	ClientConnection conn;
-	boolean forever = true;
-
-	public OutboundWorker(ClientConnection conn) {
-	    this.conn = conn;
-
-	    if (conn.outbound == null)
-		throw new RuntimeException("connection worker detected null queue");
+		ClientConnection rtn = new ClientConnection(host, port);
+		return rtn;
 	}
 
-	@Override
-	public void run() {
-	    Channel ch = conn.connect();
-	    if (ch == null || !ch.isOpen()) {
-		ClientConnection.logger
-			.error("connection missing, no outbound communication");
-		return;
-	    }
+	/**
+	 * add an application-level listener to receive messages from the server (as
+	 * in replies to requests).
+	 * 
+	 * @param listener
+	 */
+	public void addListener(ClientListener listener) {
+		try {
+			if (clientPipeline != null)
+				clientPipeline.addListener(listener);
+		} catch (Exception e) {
+			logger.error("failed to add listener", e);
+		}
+	}
 
-	    while (true) {
-		if (!forever && conn.outbound.size() == 0)
-		    break;
+	public void uploadFile(String namespace, String filePath, String dest)
+			throws IOException {
+		String[] names = filePath.split("/");
+		int namesLength = names.length;
+		String fileName = names[namesLength - 1];
+		System.out.println("FileName =" + fileName);
+		long fileSize = new File(filePath).length();
+		System.out.println("The file size is = " + fileSize);
+		if (namespace == null) {
+			namespace = "server" + originator;
+		}
+		String id = generateUniqueId();
+
+		Document d = Document.newBuilder().setDocName(fileName)
+				.setChunkContent(getFileAsByteString(filePath))
+				.setDocSize(fileSize).build();
+		eye.Comm.Payload.Builder p = Payload.newBuilder();
+		p.setDoc(d);
+		NameSpace ns = NameSpace.newBuilder().setName(namespace).build();
+		p.setSpace(ns);
+
+		eye.Comm.Header.Builder h = Header.newBuilder();
+		h.setOriginator(originator);
+		h.setCorrelationId(id);
+		h.setTime(System.currentTimeMillis());
+		h.setRoutingId(eye.Comm.Header.Routing.DOCADD);
+		h.setRemainingHopCount(4);
+
+		if (dest != null) {
+			h.setToNode(dest);
+		}
+		Request r = Request.newBuilder().setHeader(h.build())
+				.setBody(p.build()).build();
+
+		eye.Comm.Request req = r;
 
 		try {
-		    // block until a message is enqueued
-		    GeneratedMessage msg = conn.outbound.take();
-		    if (ch.isWritable()) {
-			ClientHandler handler = conn.connect().getPipeline()
-				.get(ClientHandler.class);
-
-			if (!handler.send(msg))
-			    conn.outbound.putFirst(msg);
-		    } else
-			conn.outbound.putFirst(msg);
-		} catch (InterruptedException ie) {
-		    break;
-		} catch (Exception e) {
-		    ClientConnection.logger.error("Unexpected communcation failure", e);
-		    break;
+			// enqueue message
+			outbound.put(req);
+		} catch (InterruptedException e) {
+			logger.warn("Unable to deliver message, queuing");
 		}
-	    }
-
-	    if (!forever) {
-		ClientConnection.logger.info("connection queue closing");
-	    }
 	}
-    }
+
+	public void retrieveFile(String fileName) {
+		String id = generateUniqueId();
+
+		System.out.println(" Inside retrieve file method in client connection");
+
+		Document.Builder docBuilder = Document.newBuilder();
+		docBuilder.setDocName(fileName);
+
+		eye.Comm.Payload.Builder payloadBuilder = Payload.newBuilder();
+		payloadBuilder.setDoc(docBuilder.build());
+
+		Request.Builder requestBuilder = Request.newBuilder();
+		requestBuilder.setBody(payloadBuilder.build());
+		eye.Comm.Header.Builder requestHeader = Header.newBuilder();
+		requestHeader.setOriginator(originator);
+		requestHeader.setCorrelationId(id);
+		requestHeader.setTime(System.currentTimeMillis());
+		requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCFIND);
+		requestHeader.setRemainingHopCount(4);
+		requestBuilder.setHeader(requestHeader.build());
+
+		eye.Comm.Request fileRequest = requestBuilder.build();
+		try {
+			// enqueue message
+			outbound.put(fileRequest);
+		} catch (InterruptedException e) {
+			logger.warn("Unable to deliver message, queuing");
+		}
+	}
+
+	public void findFile(String fileName) {
+		String id = generateUniqueId();
+
+		System.out.println("Inside find file method in Client connection");
+
+		Document.Builder docBuilder = Document.newBuilder();
+		docBuilder.setDocName(fileName);
+
+		eye.Comm.Payload.Builder payloadBuilder = Payload.newBuilder();
+		payloadBuilder.setDoc(docBuilder.build());
+
+		Request.Builder requestBuilder = Request.newBuilder();
+		requestBuilder.setBody(payloadBuilder.build());
+		eye.Comm.Header.Builder requestHeader = Header.newBuilder();
+		requestHeader.setOriginator(originator);
+		requestHeader.setCorrelationId(id);
+		requestHeader.setTime(System.currentTimeMillis());
+		requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCQUERY);
+		requestBuilder.setHeader(requestHeader.build());
+
+		eye.Comm.Request fileRequest = requestBuilder.build();
+		try {
+			// enqueue message
+			outbound.put(fileRequest);
+		} catch (InterruptedException e) {
+			logger.warn("Unable to deliver message, queuing");
+		}
+	}
+
+	public void removeFile(String fileName) {
+		String id = generateUniqueId();
+		System.out.println("Inside rempve file method in Client connection");
+		Document.Builder docBuilder = Document.newBuilder();
+		docBuilder.setDocName(fileName);
+		eye.Comm.Payload.Builder payloadBuilder = Payload.newBuilder();
+		payloadBuilder.setDoc(docBuilder.build());
+		Request.Builder requestBuilder = Request.newBuilder();
+		requestBuilder.setBody(payloadBuilder.build());
+		eye.Comm.Header.Builder requestHeader = Header.newBuilder();
+		requestHeader.setOriginator(originator);
+		requestHeader.setCorrelationId(id);
+		requestHeader.setTime(System.currentTimeMillis());
+		requestHeader.setRoutingId(eye.Comm.Header.Routing.DOCREMOVE);
+		requestBuilder.setHeader(requestHeader.build());
+		eye.Comm.Request fileRequest = requestBuilder.build();
+		try {
+			// enqueue message
+			outbound.put(fileRequest);
+		} catch (InterruptedException e) {
+			logger.warn("Unable to deliver message, queuing");
+		}
+	}
+
+	public void poke(String tag, int num) throws IOException {
+		// data to send
+		Finger f = eye.Comm.Finger.newBuilder().setTag(tag).setNumber(num)
+				.build();
+
+		// payload containing data
+		eye.Comm.Payload.Builder p = Payload.newBuilder();
+		p.setFinger(f);
+
+		// header with routing info
+		eye.Comm.Header.Builder h = Header.newBuilder();
+		h.setOriginator("client");
+		h.setTag("test finger");
+		h.setTime(System.currentTimeMillis());
+		h.setRoutingId(eye.Comm.Header.Routing.FINGER);
+
+		Request r = Request.newBuilder().setHeader(h.build())
+				.setBody(p.build()).build();
+
+		eye.Comm.Request req = r;
+
+		try {
+			// enqueue message
+			outbound.put(req);
+		} catch (InterruptedException e) {
+			logger.warn("Unable to deliver message, queuing");
+		}
+	}
+
+	public ByteString getFileAsByteString(String filePath) throws IOException {
+		FileInputStream input = new FileInputStream(filePath);
+
+		byte[] fileData = new byte[input.available()];
+
+		input.read(fileData);
+		input.close();
+		return ByteString.copyFrom(fileData);
+	}
+
+	private void init() {
+		// the queue to support client-side surging
+		outbound = new LinkedBlockingDeque<com.google.protobuf.GeneratedMessage>();
+
+		// Configure the client.
+		bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(
+				Executors.newCachedThreadPool(),
+				Executors.newCachedThreadPool()));
+
+		bootstrap.setOption("connectTimeoutMillis", 10000);
+		bootstrap.setOption("tcpNoDelay", true);
+		bootstrap.setOption("keepAlive", true);
+
+		// Set up the pipeline factory.
+		clientPipeline = new ClientDecoderPipeline();
+		bootstrap.setPipelineFactory(clientPipeline);
+
+		// start outbound message processor
+		worker = new OutboundWorker(this);
+		worker.start();
+	}
+
+	/**
+	 * create connection to remote server
+	 * 
+	 * @return
+	 */
+	protected Channel connect() {
+		// Start the connection attempt.
+		if (channel == null) {
+			// System.out.println("---> connecting");
+			channel = bootstrap.connect(new InetSocketAddress(host, port));
+			// cleanup on lost connection
+		}
+
+		// wait for the connection to establish
+		channel.awaitUninterruptibly();
+
+		if (channel.isDone() && channel.isSuccess())
+			return channel.getChannel();
+		else
+			throw new RuntimeException(
+					"Not able to establish connection to server");
+	}
+
+	/**
+	 * queues outgoing messages - this provides surge protection if the client
+	 * creates large numbers of messages.
+	 * 
+	 * @author gash
+	 * 
+	 */
+	protected class OutboundWorker extends Thread {
+		ClientConnection conn;
+		boolean forever = true;
+
+		public OutboundWorker(ClientConnection conn) {
+			this.conn = conn;
+
+			if (conn.outbound == null)
+				throw new RuntimeException(
+						"connection worker detected null queue");
+		}
+
+		@Override
+		public void run() {
+			Channel ch = conn.connect();
+			if (ch == null || !ch.isOpen()) {
+				ClientConnection.logger
+						.error("connection missing, no outbound communication");
+				return;
+			}
+
+			while (true) {
+				if (!forever && conn.outbound.size() == 0)
+					break;
+
+				try {
+					// block until a message is enqueued
+					GeneratedMessage msg = conn.outbound.take();
+					if (ch.isWritable()) {
+						ClientHandler handler = conn.connect().getPipeline()
+								.get(ClientHandler.class);
+
+						if (!handler.send(msg))
+							conn.outbound.putFirst(msg);
+					} else
+						conn.outbound.putFirst(msg);
+				} catch (InterruptedException ie) {
+					break;
+				} catch (Exception e) {
+					ClientConnection.logger.error(
+							"Unexpected communcation failure", e);
+					break;
+				}
+			}
+
+			if (!forever) {
+				ClientConnection.logger.info("connection queue closing");
+			}
+		}
+	}
 }

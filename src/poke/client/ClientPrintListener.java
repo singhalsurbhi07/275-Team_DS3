@@ -68,12 +68,7 @@ public class ClientPrintListener implements ClientListener {
 
 	    else if (msg.getHeader().getRoutingId() == eye.Comm.Header.Routing.DOCFIND) {
 
-		/*
-		 * System.out .println(
-		 * "<<<<<<<<<<<<<<inside DOC find to write into client file system>>>>>>>>>>>>>>>>>>>>>>>"
-		 * );
-		 */
-
+		
 		String fileName = msg.getBody().getStats().getDocName();
 
 		String fileContent = msg.getBody().getStats().getChunkContent()
@@ -115,8 +110,10 @@ public class ClientPrintListener implements ClientListener {
 		System.out.println(msg.getBody().getStats().getDocName()
 			+ " replicated also..");
 	    } else if (msg.getHeader().getRoutingId() == eye.Comm.Header.Routing.DOCREMOVE) {
-		System.out.println(msg.getBody().getStats().getDocName()
-			+ " File Deleted Succesfully ");
+	    	
+	    	/*System.out.println(msg.getBody().getStats().getDocName()
+			+ " File Deleted Succesfully ");*/
+	    	System.out.println(msg.getHeader().getReplyMsg());
 	    } else {
 		System.out.println("No resource ID set");
 		// for (int i = 0, I = msg.getBody().getDocsCount(); i < I; i++)

@@ -35,12 +35,7 @@ public class Route {
     private String tag;
     private int count;
 
-    /*
-     * Properties p = System.getProperties(); String key = "user.home"; String
-     * USER_DIR = (String) p.get(key); public final String DOWNLOAD_DIR =
-     * USER_DIR + "/downloads"; //public static final String DOWNLOAD_DIR =
-     * "/tmp/downloads";
-     */
+   
     public Route(String tag) {
 	this.tag = tag;
 
@@ -51,15 +46,8 @@ public class Route {
 	ClientListener listener = new ClientPrintListener("jab demo");
 	cc.addListener(listener);
 
-	// for (int i = 0; i < 3; i++) {
-	// count++;
-	// //System.out.println("the tag is ===============>" + tag);
-	// //cc.pokeDoc(tag, count);
-	// cc.poke(tag, count);
-	// }
 	String filePath;
 	String dest;
-	String fileName;
 	BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
 	switch (choice) {
 	case 1:
@@ -79,45 +67,22 @@ public class Route {
 	    break;
 
 	case 2:
-	    System.out.print("Enter the file name to retrieve --> ");
-	    fileName = bufferRead.readLine();
-	    // System.out.println("Default Download Dir = " + DOWNLOAD_DIR);
-	    System.out.println("READ       THE            FILE        NAME");
-	    cc.retrieveFile(fileName);
-	    break;
-	case 3:
 	    System.out.print("Enter the file name to delete --> ");
 	    String fileNameDel = bufferRead.readLine();
-	    // System.out.println("Default Download Dir = " + DOWNLOAD_DIR);
-	    System.out.println("READ       THE            FILE        NAME");
 	    cc.removeFile(fileNameDel);
 	    break;
-	case 4:
+	case 3:
 		System.out.print("Enter the file name to find the file --->");
 		String filefind = bufferRead.readLine();
-		System.out.println("READ THE FILE NAME");
 		cc.findFile(filefind);
 		break;
-	case 5:
+	case 4:
 	    System.out.println("Exit");
 
 	}
     }
 
-    // public static void main(String[] args) {
-    // try {
-    // Route jab = new Route("jab");
-    // jab.run();
-    //
-    // // we are running asynchronously
-    // System.out.println("\nExiting in 5 seconds");
-    // Thread.sleep(5000);
-    // System.exit(0);
-    //
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // }
-    // }
+    
 
     public static void main(String[] args) {
 	int choice = 0;
@@ -125,10 +90,9 @@ public class Route {
 	do {
 	    System.out.println("Menu");
 	    System.out.println("1. Upload File");
-	    System.out.println("2. Retrieve File");
-	    System.out.println("3. Remove File");
-	    System.out.println("4. Find File");
-	    System.out.println("5. Exit");
+	    System.out.println("2. Remove File");
+	    System.out.println("3. Find File");
+	    System.out.println("4. Exit");
 	    System.out.println("Enter Choice");
 	    try {
 		BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
@@ -141,7 +105,7 @@ public class Route {
 	    {
 		e.printStackTrace();
 	    }
-	} while (choice < 5);
+	} while (choice < 4);
 
     }
 

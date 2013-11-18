@@ -124,9 +124,9 @@ public class RemoveResource implements Resource {
 	// fb.setTag(request.getBody().getFinger().getTag());
 	Header fb = Header
 		.newBuilder(request.getHeader())
-		.setReplyCode(ReplyStatus.SUCCESS)
-		.setReplyMsg("File  Deleted")
-		.setOriginator(request.getHeader().getToNode())
+		.setReplyCode(ReplyStatus.FAILURE)
+		.setReplyMsg("File Not Found")
+		.setToNode(request.getHeader().getOriginator())
 		.setOriginator(
 			Server.getConf().getServer().getProperty("node.id"))
 		.build();
@@ -181,7 +181,7 @@ public class RemoveResource implements Resource {
 		ForwardedMessage msg = new ForwardedMessage(next, newReq);
 		ForwardQ.enqueueRequest(msg);
 	    } else {
-		Response newRes = createResponse(request);
+		Response newRes = createResponseFailure(request);
 		return newRes;
 	    }
 

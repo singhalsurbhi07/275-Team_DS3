@@ -181,7 +181,7 @@ eMillis()).build();
 	    }
 	}
 
-	return res;
+	//return res;
 
 	/**
 	 * Find the nearest node that has not received the request.
@@ -193,6 +193,6 @@ eMillis()).build();
 	 * @return
 	 */
 
-	// return null;
+	 return null;
     }
 }

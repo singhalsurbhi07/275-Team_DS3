@@ -28,249 +28,245 @@ import eye.Comm.RoutingPath;
 
 public class DocQueryResource implements Resource {
 
-    protected static Logger logger = LoggerFactory.getLogger("server");
-    public static final String sDriver = "jdbc.driver";
-    public static final String sUrl = "jdbc.url";
-    public static final String sUser = "jdbc.user";
-    public static final String sPass = "jdbc.password";
-    private ServerConf cfg;
-    public String adjacentNode = null;
+	protected static Logger logger = LoggerFactory.getLogger("server");
+	public static final String sDriver = "jdbc.driver";
+	public static final String sUrl = "jdbc.url";
+	public static final String sUser = "jdbc.user";
+	public static final String sPass = "jdbc.password";
+	private ServerConf cfg;
+	public String adjacentNode = null;
 
-    public ServerConf getCfg() {
-	return cfg;
-    }
-
-    private byte[] fileContent;
-
-    public DocQueryResource() {
-
-    }
-
-    public void setCfg() {
-	this.cfg = Server.getConf();
-    }
-
-    private Request createRequest(Request request) {
-	RoutingPath rp = RoutingPath.newBuilder()
-		.setNode(Server.getConf().getServer().getProperty("node.id"))
-		.setTime(System.currentTimeMillis()).build();
-
-	System.out.println("DocQueryResource:createRequest for forwarding  Adding Route Path");
-	System.out.println(rp);
-	// int hopCount = (int) request.getHeader().getRemainingHopCount();
-	// hopCount--;
-
-	/*
-	 * Header newHeader = Header.newBuilder(request.getHeader())
-	 * .setTime(System.currentTimeMillis())
-	 * .setRemainingHopCount(hopCount).addPath(rp).build();
-	 */
-	Header newHeader = Header.newBuilder(request.getHeader())
-		.setTime(System.currentTimeMillis())
-		.addPath(rp).build();
-
-	Request newRequest = Request.newBuilder(request).setHeader(newHeader)
-		.build();
-
-	for (RoutingPath rp1 : newHeader.getPathList()) {
-	    System.out.println("added pathlist");
-	    System.out.println(rp1);
+	public ServerConf getCfg() {
+		return cfg;
 	}
 
-	return newRequest;
-    }
+	private byte[] fileContent;
 
-    private Response createResponseFailure(Request request) {
+	public DocQueryResource() {
 
-	// fb.setTag(request.getBody().getFinger().getTag());
-
-	Header fb = Header
-		.newBuilder(request.getHeader())
-		.setReplyCode(ReplyStatus.FAILURE)
-		.setReplyMsg(
-			"Not enough hop counts or not able to determine next node")
-		.setOriginator(
-			Server.getConf().getServer().getProperty("node.id"))
-		.setToNode(request.getHeader().getOriginator()).build();
-
-	Document d = Document.newBuilder().setDocName(request.getBody().getDoc().getDocName())
-		.build();
-
-	PayloadReply pb = PayloadReply.newBuilder().setStats(d).build();
-	return Response.newBuilder().setBody(pb).setHeader(fb).build();
-    }
-
-    private Response createResponseSuccess(Request request) {
-
-	// fb.setTag(request.getBody().getFinger().getTag());
-	RoutingPath rp = RoutingPath.newBuilder()
-		.setNode(Server.getConf().getServer().getProperty("node.id"))
-		.setTime(System.currentTimeMillis()).build();
-	Header fb = Header
-		.newBuilder(request.getHeader())
-		.setReplyCode(ReplyStatus.SUCCESS)
-		.setReplyMsg("Found the file")
-		.setOriginator(
-			Server.getConf().getServer().getProperty("node.id"))
-		.setToNode(request.getHeader().getOriginator()).addPath(rp).build();
-
-	Document d = Document.newBuilder().setDocName(request.getBody().getDoc().getDocName())
-		.build();
-
-	PayloadReply pb = PayloadReply.newBuilder().setStats(d).build();
-	return Response.newBuilder().setBody(pb).setHeader(fb).build();
-
-    }
-
-    private String determineForwardNode(Request request) {
-	System.out
-		.println("IN DOC QUERY RESOURCE ===============> determineForwardNode start");
-	List<RoutingPath> paths = request.getHeader().getPathList();
-	Collection<NodeDesc> neighboursList = cfg.getNearest()
-		.getNearestNodes().values();
-
-	// System.out.println("IN determineForwardNode1");
-	if (paths == null || paths.size() == 0) {
-	    System.out.println("paths==null, picking first nearest node");
-	    System.out.println("NearestNode:"
-		    + cfg.getNearest().getNearestNodes().values());
-	    // pick first nearest
-	   /* NodeDesc nd = cfg.getNearest().getNearestNodes().values()
-		    .iterator().next();
-		    if (nd == null)
-		System.out.println("nodedesc is null");
-
-	    System.out.println("DOC QUERY Resource: if path==null"
-		    + nd.getNodeId());
-	    return nd.getNodeId();*/
-	    for (NodeDesc nd : cfg.getNearest().getNearestNodes().values()) {
-		    if(Server.activeNodes.contains(nd.getNodeId())&&nd!=null)	
-		    {
-		    	System.out
-			    .println("FowardResource: if path==null" + nd.getNodeId());
-		    return nd.getNodeId();
-		    }
-		    else
-		    	continue;
-		    }
-		    
-	    
-	} else {
-	    System.out
-		    .println("DOC QUERY Resource:determine nextnode if path!=null");
-	    // if this server has already seen this message return null
-
-	    for (NodeDesc nd : neighboursList) {
-		boolean found = true;
-		for (RoutingPath rp : paths) {
-		    if (rp.getNode().equalsIgnoreCase(nd.getNodeId())) {
-			found = false;
-			break;
-		    }
-		}
-		if (found) {
-			if(Server.activeNodes.contains(nd.getNodeId()))
-		    	return nd.getNodeId();
-		    else
-		    	continue;
-		    //return nd.getNodeId();
-		}
-	    }
 	}
-	return null;
-    }
 
-    @Override
-    public Response process(Request request) {
-	Properties p = System.getProperties();
-	Document FoundFile = null;
-	String fileToBeFound = request.getBody().getDoc().getDocName();
-	System.out
-		.println("The name of the file to be found is ==============> "
-			+ fileToBeFound);
+	public void setCfg() {
+		this.cfg = Server.getConf();
+	}
 
-	FileInfo fileInfo = ServerManagementUtil.getDatabaseStorage()
-		.findDocument(request, fileToBeFound);
-	Response response = null;
-	eye.Comm.PayloadReply.Builder findPayload = null;
-	if (fileInfo != null) {
-	    System.out.println("DocQueryResource:fileinfo not null");
+	private Request createRequest(Request request) {
+		RoutingPath rp = RoutingPath.newBuilder()
+				.setNode(Server.getConf().getServer().getProperty("node.id"))
+				.setTime(System.currentTimeMillis()).build();
 
-	    Response res = createResponseSuccess(request);
-	    System.out.println("DocQueryResource:forward the response" + res);
+		System.out
+				.println("DocQueryResource:createRequest for forwarding  Adding Route Path");
+		System.out.println(rp);
 
-	    return res;
-	} else {
+		Header newHeader = Header.newBuilder(request.getHeader())
+				.setTime(System.currentTimeMillis()).addPath(rp).build();
 
-	    /*
-	     * for (NodeDesc nn : cfg.getNearest().getNearestNodes().values()) {
-	     * adjacentNode = nn.getNodeId(); }
-	     */
-	    setCfg();
-	    if (cfg != null) {
-		if (request.getHeader().getIsExternal() && cfg.getExternal()!=null) {
-			System.out.println("This is inside when an external node of value not null is found=========>");
-		    adjacentNode = determineExternalNode(request);
-		    System.out.println("DocQueryResource:adjacent node when is external=true :"
-			    + adjacentNode);
+		Request newRequest = Request.newBuilder(request).setHeader(newHeader)
+				.build();
+
+		for (RoutingPath rp1 : newHeader.getPathList()) {
+			System.out.println("added pathlist");
+			System.out.println(rp1);
+		}
+
+		return newRequest;
+	}
+
+	private Response createResponseFailure(Request request) {
+
+		// fb.setTag(request.getBody().getFinger().getTag());
+
+		Header fb = Header
+				.newBuilder(request.getHeader())
+				.setReplyCode(ReplyStatus.FAILURE)
+				.setReplyMsg(
+						"Not enough hop counts or not able to determine next node")
+				.setOriginator(
+						Server.getConf().getServer().getProperty("node.id"))
+				.setToNode(request.getHeader().getOriginator()).build();
+
+		Document d = Document.newBuilder()
+				.setDocName(request.getBody().getDoc().getDocName()).build();
+
+		PayloadReply pb = PayloadReply.newBuilder().setStats(d).build();
+		return Response.newBuilder().setBody(pb).setHeader(fb).build();
+	}
+
+	private Response createResponseSuccess(Request request) {
+
+		// fb.setTag(request.getBody().getFinger().getTag());
+		RoutingPath rp = RoutingPath.newBuilder()
+				.setNode(Server.getConf().getServer().getProperty("node.id"))
+				.setTime(System.currentTimeMillis()).build();
+		Header fb = Header
+				.newBuilder(request.getHeader())
+				.setReplyCode(ReplyStatus.SUCCESS)
+				.setReplyMsg("Found the file")
+				.setOriginator(
+						Server.getConf().getServer().getProperty("node.id"))
+				.setToNode(request.getHeader().getOriginator()).addPath(rp)
+				.build();
+
+		Document d = Document.newBuilder()
+				.setDocName(request.getBody().getDoc().getDocName()).build();
+
+		PayloadReply pb = PayloadReply.newBuilder().setStats(d).build();
+		return Response.newBuilder().setBody(pb).setHeader(fb).build();
+
+	}
+
+	private String determineForwardNode(Request request) {
+		System.out
+				.println("IN DOC QUERY RESOURCE ===============> determineForwardNode start");
+		List<RoutingPath> paths = request.getHeader().getPathList();
+		Collection<NodeDesc> neighboursList = cfg.getNearest()
+				.getNearestNodes().values();
+
+		// System.out.println("IN determineForwardNode1");
+		if (paths == null || paths.size() == 0) {
+			System.out.println("paths==null, picking first nearest node");
+			System.out.println("NearestNode:"
+					+ cfg.getNearest().getNearestNodes().values());
+			// pick first nearest
+			/*
+			 * NodeDesc nd = cfg.getNearest().getNearestNodes().values()
+			 * .iterator().next(); if (nd == null)
+			 * System.out.println("nodedesc is null");
+			 * 
+			 * System.out.println("DOC QUERY Resource: if path==null" +
+			 * nd.getNodeId()); return nd.getNodeId();
+			 */
+			for (NodeDesc nd : cfg.getNearest().getNearestNodes().values()) {
+				if (Server.activeNodes.contains(nd.getNodeId()) && nd != null) {
+					System.out.println("FowardResource: if path==null"
+							+ nd.getNodeId());
+					return nd.getNodeId();
+				} else
+					continue;
+			}
 
 		} else {
+			System.out
+					.println("DOC QUERY Resource:determine nextnode if path!=null");
+			// if this server has already seen this message return null
 
-		    adjacentNode = determineForwardNode(request);
-		    System.out.println("DocQueryResource:adjacent node when is external=false :"
-			    + adjacentNode);
+			for (NodeDesc nd : neighboursList) {
+				boolean found = true;
+				for (RoutingPath rp : paths) {
+					if (rp.getNode().equalsIgnoreCase(nd.getNodeId())) {
+						found = false;
+						break;
+					}
+				}
+				if (found) {
+					if (Server.activeNodes.contains(nd.getNodeId()))
+						return nd.getNodeId();
+					else
+						continue;
+					// return nd.getNodeId();
+				}
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public Response process(Request request) {
+		Properties p = System.getProperties();
+		Document FoundFile = null;
+		String fileToBeFound = request.getBody().getDoc().getDocName();
+		System.out
+				.println("The name of the file to be found is ==============> "
+						+ fileToBeFound);
+
+		FileInfo fileInfo = ServerManagementUtil.getDatabaseStorage()
+				.findDocument(request, fileToBeFound);
+		Response response = null;
+		eye.Comm.PayloadReply.Builder findPayload = null;
+		if (fileInfo != null) {
+			System.out.println("DocQueryResource:fileinfo not null");
+
+			Response res = createResponseSuccess(request);
+			System.out.println("DocQueryResource:forward the response" + res);
+
+			return res;
+		} else {
+
+			/*
+			 * for (NodeDesc nn : cfg.getNearest().getNearestNodes().values()) {
+			 * adjacentNode = nn.getNodeId(); }
+			 */
+			setCfg();
+			if (cfg != null) {
+				if (request.getHeader().getIsExternal()
+						&& cfg.getExternal() != null) {
+					System.out
+							.println("This is inside when an external node of value not null is found=========>");
+					adjacentNode = determineExternalNode(request);
+					System.out
+							.println("DocQueryResource:adjacent node when is external=true :"
+									+ adjacentNode);
+
+				} else {
+
+					adjacentNode = determineForwardNode(request);
+					System.out
+							.println("DocQueryResource:adjacent node when is external=false :"
+									+ adjacentNode);
+
+				}
+			} else {
+				System.out
+						.println("------------------CFG IS NULL-------------------------");
+			}
+			System.out
+					.println("nextNode in DOC QUERY resource=================>"
+							+ adjacentNode);
+			GeneratedMessage msg = null;
+			ForwardedMessage fwdMessage;
+
+			if (adjacentNode != null) {
+				msg = createRequest(request);
+				// return null;
+			} else {
+				// msg = createResponseFailure(request);
+				return createResponseFailure(request);
+
+				// return msg..
+
+			}
+			fwdMessage = new ForwardedMessage(adjacentNode, msg);
+			ForwardQ.enqueueRequest(fwdMessage);
 
 		}
-	    } else {
+
+		logger.info("++++++++++++++++++++++ after building response ++++++++++++++++++++++");
 		System.out
-			.println("------------------CFG IS NULL-------------------------");
-	    }
-	    System.out
-		    .println("nextNode in DOC QUERY resource=================>"
-			    + adjacentNode);
-	    GeneratedMessage msg = null;
-	    ForwardedMessage fwdMessage;
-
-	    if (adjacentNode != null) {
-		msg = createRequest(request);
-		// return null;
-	    } else {
-		// msg = createResponseFailure(request);
-		return createResponseFailure(request);
-
-		// return msg..
-
-	    }
-	    fwdMessage = new ForwardedMessage(adjacentNode, msg);
-	    ForwardQ.enqueueRequest(fwdMessage);
-
+				.println("THE--------------------RESPONSE------------------IS"
+						+ response);
+		/*
+		 * else { // file is not present in this node. // you will have to
+		 * prepare an appropriate response // take the next node and set it to
+		 * the response. }
+		 */
+		return null;
 	}
 
-	logger.info("++++++++++++++++++++++ after building response ++++++++++++++++++++++");
-	System.out
-		.println("THE--------------------RESPONSE------------------IS"
-			+ response);
-	/*
-	 * else { // file is not present in this node. // you will have to
-	 * prepare an appropriate response // take the next node and set it to
-	 * the response. }
-	 */
-	return null;
-    }
+	private String determineExternalNode(Request request) {
+		NodeDesc nd = cfg.getExternal().getExternalNodes().values().iterator()
+				.next();
+		if (nd == null) {
+			// String ExternalNodeFinder = determineForwardNode(request);
+			System.out.println("nodedesc is null");
+			return null;
+		}
 
-    private String determineExternalNode(Request request) {
-	NodeDesc nd = cfg.getExternal().getExternalNodes().values()
-		.iterator().next();
-	if (nd == null) {
-		//String ExternalNodeFinder = determineForwardNode(request);
-	    System.out.println("nodedesc is null");
-	    return null;
+		System.out
+				.println("DOC QUERY Resource determine external node : if path==null"
+						+ nd.getNodeId());
+		return nd.getNodeId();
+
 	}
-
-	System.out.println("DOC QUERY Resource determine external node : if path==null"
-		+ nd.getNodeId());
-	return nd.getNodeId();
-
-    }
 
 }
