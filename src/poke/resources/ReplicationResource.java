@@ -121,6 +121,8 @@ eMillis()).build();
 		.build();
 	return Response.newBuilder().setBody(pb).setHeader(fb).build();
     }
+    
+    
 
     @Override
     public Response process(Request request) {
@@ -153,6 +155,7 @@ eMillis()).build();
 	if (!(res.getHeader().getReplyCode().equals(ReplyStatus.FAILURE))) {
 	    System.out.println("((((((((((((Respone in Replication  Resource)))))))))))))"
 		    + res.getHeader().getReplyCode());
+	    
 	    logger.info("originator and to node id : " + request.getHeader().getOriginator()+" " +request.getHeader().getToNode());
 	    
 	    if(request.getHeader().getOriginator().equals("zero"))
@@ -178,7 +181,7 @@ eMillis()).build();
 	    }
 	}
 
-	return null;
+	return res;
 
 	/**
 	 * Find the nearest node that has not received the request.
